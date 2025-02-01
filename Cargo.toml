@@ -3,6 +3,9 @@ name = "wslpluginapi-sys"
 version = "0.1.0-alpha.0+2.1.3"
 edition = "2021"
 
+[features]
+hooks-field-names = ["dep:struct-field-names-as-array"]
+
 [build-dependencies]
 bindgen = "0.71.1"
 semver = "^1.0"
