@@ -2,6 +2,32 @@
 name = "wslpluginapi-sys"
 version = "0.1.0-alpha.0+2.1.3"
 edition = "2021"
+readme = "README.md"
+authors = ["Mickaël Véril <mika.veril@wanadoo.fr>"]
+description = "Rust bindings for the WSL Plugin API"
+license = "MIT"
+repository = "https://github.com/mveril/wslpluginapi-sys"
+documentation = "https://docs.rs/wslpluginapi-sys"
+keywords = [
+  "wsl",
+  "plugin",
+  "api",
+  "windows",
+  "linux",
+  "interop",
+  "rust",
+  "ffi",
+]
+categories = [
+  "development-tools::build-tools",
+  "os::windows",
+  "os::windows-apis",
+  "development-tools::debugging",
+  "development-tools::testing",
+  "development-tools::virtualization",
+  "external-ffi-bindings",
+]
+
 
 [features]
 hooks-field-names = ["dep:struct-field-names-as-array"]
