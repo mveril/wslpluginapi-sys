@@ -4,11 +4,12 @@ extern crate semver;
 use bindgen::callbacks::{ParseCallbacks, TypeKind};
 use semver::Version;
 use std::env;
-use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus};
+use std::path::PathBuf;
+use std::process::Command;
 
 const WSL_PACKAGE_NAME: &str = "Microsoft.WSL.PluginApi";
-const LOCAL_NUGET_PATH: &str = "nuget_packages"; // Local folder to store NuGet packages
+const LOCAL_NUGET_FOLDER: &str = "nuget_packages";
+const WSL_PLUGIN_API_BINDGEN_OUTPUT_FILE_NAME: &str = "WSLPluginApi.rs";
 
 #[derive(Debug, Default)]
 struct BindgenCallback {
@@ -17,40 +18,41 @@ struct BindgenCallback {
 
 impl BindgenCallback {
     fn new(generate_hooks_fields_names: bool) -> Self {
-        BindgenCallback {
+        Self {
             generate_hooks_fields_name: generate_hooks_fields_names,
         }
     }
 }
 
 impl ParseCallbacks for BindgenCallback {
-    fn add_derives(&self, _info: &bindgen::callbacks::DeriveInfo<'_>) -> Vec<String> {
-        if _info.kind == TypeKind::Struct && _info.name == "WSLVersion" {
-            vec![
-                "Eq".into(),
-                "PartialEq".into(),
-                "Ord".into(),
-                "PartialOrd".into(),
-                "Hash".into(),
-            ]
-        } else if _info.kind == TypeKind::Struct
-            && _info.name.contains("PluginHooks")
-            && self.generate_hooks_fields_name
-        {
-            vec!["FieldNamesAsSlice".into()]
-        } else {
-            vec![]
+    fn add_derives(&self, info: &bindgen::callbacks::DeriveInfo<'_>) -> Vec<String> {
+        let mut derives = Vec::new();
+
+        if info.kind == TypeKind::Struct {
+            if info.name == "WSLVersion" {
+                derives.extend(vec![
+                    "Eq".to_string(),
+                    "PartialEq".to_string(),
+                    "Ord".to_string(),
+                    "PartialOrd".to_string(),
+                    "Hash".to_string(),
+                ]);
+            } else if info.name.contains("PluginHooks") && self.generate_hooks_fields_name {
+                derives.push("FieldNamesAsSlice".to_string());
+            }
         }
+
+        derives
     }
 }
 
-// Function to ensure the NuGet package is installed in the local folder
+/// Ensures that the NuGet package is installed in the local folder.
 fn ensure_package_installed(
     package_name: &str,
     package_version: &str,
-    output_dir: &str,
-) -> Result<ExitStatus, Box<dyn std::error::Error>> {
-    // Run the NuGet install command with -NonInteractive to avoid prompts
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let out_dir: PathBuf = env::var("OUT_DIR")?.into();
+    let package_dir = out_dir.join(LOCAL_NUGET_FOLDER);
     let status = Command::new("nuget")
         .args([
             "install",
@@ -58,11 +60,10 @@ fn ensure_package_installed(
             "-Version",
             package_version,
             "-OutputDirectory",
-            output_dir,        // Local folder to install the NuGet package
-            "-NonInteractive", // Ensures the command runs without user interaction
+            package_dir.to_str().unwrap(),
+            "-NonInteractive",
         ])
-        .status()
-        .expect("Failed to execute nuget install command");
+        .status()?;
 
     if !status.success() {
         return Err(format!(
@@ -71,45 +72,35 @@ fn ensure_package_installed(
         )
         .into());
     }
-    Ok(status)
+    Ok(package_dir.join(format!("{}.{}", package_name, package_version)))
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Extract the version of the package from the Cargo metadata
-    let version_str = env!("CARGO_PKG_VERSION");
-    let version = Version::parse(version_str).expect("Unable to parse the Cargo package version");
-    let build_metadata = &version.build;
-
     println!("cargo:rerun-if-changed=build.rs");
+
+    // Extract version from Cargo package metadata
+    let version = Version::parse(env!("CARGO_PKG_VERSION"))?;
     println!("cargo:version={}", version);
-    if !build_metadata.is_empty() {
-        println!("cargo:build-metadata={}", build_metadata);
+
+    if !version.build.is_empty() {
+        println!("cargo:build-metadata={}", version.build);
     }
 
-    let package_version = build_metadata.to_string();
+    let package_version = version.build.to_string();
+    let out_path: PathBuf = env::var("OUT_DIR")?.into();
 
-    // Ensure the NuGet package is installed in the specified local directory
-    ensure_package_installed(WSL_PACKAGE_NAME, &package_version, LOCAL_NUGET_PATH)?;
+    // Ensure the NuGet package is installed
+    let package_path = ensure_package_installed(WSL_PACKAGE_NAME, &package_version)?;
 
-    // Construct the full path to the installed package in the local directory
-    let package_path =
-        Path::new(LOCAL_NUGET_PATH).join(format!("{:}.{:}", WSL_PACKAGE_NAME, package_version));
+    // Construct paths
+    let header_file_path = package_path.join("build/native/include/WslPluginApi.h");
 
-    // Construct the path to the header file
-    let header_file_path = package_path
-        .join("build")
-        .join("native")
-        .join("include")
-        .join("WslPluginApi.h");
-
-    // Check if the header file exists
     if !header_file_path.exists() {
         return Err(format!("Header file does not exist: {:?}", header_file_path).into());
     }
 
     println!("Using header file from: {:?}", header_file_path);
 
-    // Use bindgen to generate Rust bindings from the header file
     let hooks_fields_name_feature = env::var("CARGO_FEATURE_HOOKS_FIELD_NAMES").is_ok();
     let mut builder = bindgen::Builder::default()
         .header(header_file_path.to_str().unwrap())
@@ -117,18 +108,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .raw_line("use windows::Win32::Foundation::*;")
         .raw_line("use windows::Win32::Security::*;")
         .raw_line("use windows::Win32::Networking::WinSock::SOCKET;")
-        .raw_line("#[allow(clippy::upper_case_acronyms)]")
-        .raw_line("type LPCWSTR = PCWSTR;")
-        .raw_line("#[allow(clippy::upper_case_acronyms)]")
-        .raw_line("type LPCSTR = PCSTR;")
-        .raw_line("#[allow(clippy::upper_case_acronyms)]")
-        .raw_line("type DWORD = u32;");
-
-    if hooks_fields_name_feature {
-        builder = builder.raw_line("use struct_field_names_as_array::FieldNamesAsSlice;");
-    }
-
-    let api_header = builder
+        .raw_line("#[allow(clippy::upper_case_acronyms)] type LPCWSTR = PCWSTR;")
+        .raw_line("#[allow(clippy::upper_case_acronyms)] type LPCSTR = PCSTR;")
+        .raw_line("#[allow(clippy::upper_case_acronyms)] type DWORD = u32;")
         .derive_debug(true)
         .derive_copy(true)
         .allowlist_item("WSL.*")
@@ -136,16 +118,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .clang_arg("-fparse-all-comments")
         .allowlist_recursively(false)
         .parse_callbacks(Box::new(BindgenCallback::new(hooks_fields_name_feature)))
-        .generate_comments(true)
-        .generate()
-        .expect("Unable to generate wslplugins_sys");
+        .generate_comments(true);
 
-    // Write the generated bindings to the OUT_DIR
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let out_file = out_dir.join("wslplugins_sys.rs");
-    api_header
-        .write_to_file(out_file)
-        .expect("Couldn't write wslplugins_sys!");
+    if hooks_fields_name_feature {
+        builder = builder.raw_line("use struct_field_names_as_array::FieldNamesAsSlice;");
+    }
+
+    // Generate Rust bindings
+    let api_header = builder.generate()?;
+
+    // Write bindings to OUT_DIR
+    let out_file = out_path.join(WSL_PLUGIN_API_BINDGEN_OUTPUT_FILE_NAME);
+    api_header.write_to_file(&out_file)?;
 
     Ok(())
 }
