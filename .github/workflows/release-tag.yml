@@ -25,22 +25,20 @@ jobs:
           $branchName = "${{ github.event.pull_request.head.ref }}"
           $version = $branchName -replace '^release/', ''
           Write-Host "Extracted version: $version"
-          echo "version=$version" >> $env:GITHUB_ENV
+          echo "version=$version" >> $GITHUB_ENV
 
       - name: Create Git Tag
         id: create_tag
-        shell: pwsh
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git tag "v${{ env.version }}" -a -m "Release version $env:version"
+          git tag "v${{ env.version }}" -a -m "Release version ${{ env.version }}"
           git push origin "v${{ env.version }}"
 
       - name: Verify Tag
-        shell: pwsh
         run: |
           git fetch --tags
-          if (-not (git tag | Select-String "v${{ env.version }}")) {
-              Write-Host "Tag creation failed for version $env:version."
+          if (! git tag | grep -q "v${{ env.version }}") {
+              echo "Tag creation failed for version ${{ env.version }}."
               exit 1
           }
