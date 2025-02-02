@@ -53,12 +53,24 @@ jobs:
         id: validate
         shell: pwsh
         run: |
+          # Récupère le nom du tag en supprimant le préfixe "v"
           $tagName = "${{ github.ref_name }}"
+          Import-Module -Name PSSemVer -ErrorAction Stop
           try {
               $rawVersion = $tagName -replace '^v', ''
               $Version = [PSSemVer]::Parse($rawVersion)
-              echo "prerelease=$($Version.Prerelease -ne $null)" >> $env:GITHUB_ENV
-              echo "nuget_version=$($Version.metadata)" >> $env:GITHUB_ENV
+              
+              # Forcer le booléen à une chaîne en minuscules
+              $prereleaseValue = ($Version.Prerelease -ne $null).ToString().ToLower()
+              echo "prerelease=$prereleaseValue" >> $env:GITHUB_ENV
+
+              # Vérifier que le champ metadata est renseigné pour la version NuGet
+              if (-not [string]::IsNullOrEmpty($Version.metadata)) {
+                echo "nuget_version=$($Version.metadata)" >> $env:GITHUB_ENV
+              } else {
+                Write-Error "Metadata is empty. Cannot determine NuGet version."
+                exit 1
+              }
           } catch {
               Write-Error "Tag name does not contain a valid semantic version. Current tag: $tagName"
               exit 1
