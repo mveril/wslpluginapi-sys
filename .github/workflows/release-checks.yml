@@ -71,6 +71,7 @@ jobs:
         env:
           EXPECTED_VERSION: ${{ steps.extract_version.outputs.expected_version }}
         run: |
+          Import-Module -Name PSSemVer -ErrorAction Stop
           try {
               $expectedSemVer = [PSSemVer]::Parse($env:EXPECTED_VERSION)
           } catch {
