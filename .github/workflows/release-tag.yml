@@ -7,6 +7,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write # Ajout de cette ligne pour autoriser la création de tags
+
 jobs:
   create-tag:
     if: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/') }}
@@ -17,6 +20,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Extract Version from Branch Name
         id: extract_version
@@ -34,6 +39,8 @@ jobs:
           git config user.email "actions@github.com"
           git tag "v${{ env.version }}" -a -m "Release version ${{ env.version }}"
           git push origin "v${{ env.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify Tag
         run: |

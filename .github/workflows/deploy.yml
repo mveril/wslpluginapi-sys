@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   validate-and-release:
     runs-on: windows-latest
@@ -80,3 +84,5 @@ jobs:
 
       - name: Cargo Publish
         run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
