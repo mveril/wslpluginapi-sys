@@ -42,7 +42,7 @@ struct-field-names-as-array = { version = "*", features = [
   "derive",
 ], optional = true }
 [dependencies.windows]
-version = "0.58"
+version = ">0.32"
 features = [
   "Win32_Foundation",
   "Win32_Security",
