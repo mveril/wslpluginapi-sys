@@ -55,6 +55,7 @@ jobs:
         shell: pwsh
         run: |
           $branchName = "${{ github.ref_name }}"
+          Import-Module -Name PSSemVer -ErrorAction Stop
           try {
               $rawVersion = $branchName -replace '^release/', ''
               $expectedVersion = [PSSemVer]::Parse($rawVersion)
