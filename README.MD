@@ -1,8 +1,11 @@
 # wslpluginapi-sys
 
+[![Crates.io](https://img.shields.io/crates/v/wslpluginapi-sys?logo=rust)](https://crates.io/crates/wslpluginapi-sys)
+[![Docs.rs](https://img.shields.io/badge/docs.rs-wslpluginapi--sys-blue?logo=docs.rs)](https://docs.rs/wslpluginapi-sys)
 [![Build Status](https://github.com/mveril/wslpluginapi-sys/actions/workflows/ci.yml/badge.svg?logo=github)](https://github.com/mveril/wslpluginapi-sys/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?logo=license)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-blue?logo=windows&logoColor=white)](#)
+
 `wslpluginapi-sys` is a Rust crate that provides low-level bindings to the Windows Subsystem for Linux (WSL) Plugin API. It offers a direct interface to the functions and structures defined in the WSL Plugin API, facilitating the development of WSL plugins in Rust.
 
 ## Features
