@@ -50,6 +50,7 @@ jobs:
         shell: pwsh
         run: |
           $tagName = "${{ github.ref_name }}"
+          Import-Module -Name PSSemVer -ErrorAction Stop
           try {
               $rawVersion = $tagName -replace '^v', ''
               $Version = [PSSemVer]::Parse($rawVersion)
