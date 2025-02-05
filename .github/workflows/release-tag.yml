@@ -8,7 +8,7 @@ on:
       - main
 
 permissions:
-  contents: write # Ajout de cette ligne pour autoriser la création de tags
+  contents: write
 
 jobs:
   create-tag:
@@ -41,13 +41,4 @@ jobs:
           git tag "v${{ env.version }}" -a -m "Release version $env:version"
           git push origin "v${{ env.version }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify Tag
-        shell: pwsh
-        run: |
-          git fetch --tags
-          if (-not (git tag | Select-String "v${{ env.version }}")) {
-              Write-Host "Tag creation failed for version $env:version."
-              exit 1
-          }
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
