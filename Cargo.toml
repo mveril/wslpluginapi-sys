@@ -7,25 +7,17 @@ authors = ["Mickaël Véril <mika.veril@wanadoo.fr>"]
 description = "Rust bindings for the WSL Plugin API"
 license = "MIT"
 repository = "https://github.com/mveril/wslpluginapi-sys"
-documentation = "https://docs.rs/wslpluginapi-sys"
 keywords = [
   "wsl",
   "plugin",
-  "api",
   "windows",
   "linux",
-  "interop",
-  "rust",
   "ffi",
 ]
 categories = [
-  "development-tools::build-tools",
-  "os::windows",
   "os::windows-apis",
-  "development-tools::debugging",
-  "development-tools::testing",
-  "development-tools::virtualization",
   "external-ffi-bindings",
+  "virtualization",
 ]
 
 

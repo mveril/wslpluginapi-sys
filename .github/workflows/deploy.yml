@@ -92,7 +92,7 @@ jobs:
             This version is a binding for the WSLPluginAPI v${{ env.nuget_version }} available on [NuGet](https://www.nuget.org/packages/Microsoft.WSL.PluginApi/${{ env.nuget_version }}).
           prerelease: ${{ env.prerelease == 'true' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
       - name: Cargo Publish
         run: cargo publish
