@@ -5,6 +5,11 @@ on:
     tags:
       - "v*"
 
+  workflow_run:
+    workflows: ["Tag on Merge to Master"]
+    types:
+      - completed
+
 permissions:
   contents: write
   packages: write
@@ -66,9 +71,9 @@ jobs:
 
               # Vérifier que le champ metadata est renseigné pour la version NuGet
               if (-not [string]::IsNullOrEmpty($Version.metadata)) {
-                echo "nuget_version=$($Version.metadata)" >> $env:GITHUB_ENV
+                echo "nuget_version=$($Version.BuildMetadata)" >> $env:GITHUB_ENV
               } else {
-                Write-Error "Metadata is empty. Cannot determine NuGet version."
+                Write-Error "BuildMetadata is empty. Cannot determine NuGet version."
                 exit 1
               }
           } catch {
