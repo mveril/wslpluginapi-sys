@@ -1,4 +1,4 @@
-name: Tag on Merge to Master
+name: Tag on Merge to Main
 
 on:
   pull_request:
@@ -13,9 +13,7 @@ permissions:
 jobs:
   create-tag:
     if: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/') }}
-    runs-on: windows-latest
-    env:
-      CARGO_TERM_COLOR: always
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
@@ -25,20 +23,18 @@ jobs:
 
       - name: Extract Version from Branch Name
         id: extract_version
-        shell: pwsh
+        shell: bash
         run: |
-          $branchName = "${{ github.event.pull_request.head.ref }}"
-          $version = $branchName -replace '^release/', ''
-          Write-Host "Extracted version: $version"
-          echo "version=$version" >> $env:GITHUB_ENV
+          branch_name="${GITHUB_HEAD_REF}"
+          version="${branch_name#release/}"
+          echo "Extracted version: $version"
+          echo "version=$version" >> $GITHUB_ENV
 
       - name: Create Git Tag
-        id: create_tag
-        shell: pwsh
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git tag "v${{ env.version }}" -a -m "Release version $env:version"
+          git tag "v${{ env.version }}" -a -m "Release version ${{ env.version }}"
           git push origin "v${{ env.version }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

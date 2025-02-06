@@ -1,4 +1,4 @@
-name: rust
+name: ci
 on:
   push:
     branches:
@@ -10,6 +10,8 @@ on:
       - main
       - develop
       - release/*
+  schedule:
+    - cron: '0 0 * * 0'
 
 jobs:
   build-and-validate:
