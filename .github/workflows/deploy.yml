@@ -15,91 +15,112 @@ permissions:
   packages: write
 
 jobs:
+  determine-tag:
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.get_tag.outputs.tag }}
+    steps:
+      - name: Récupérer le dernier tag via l'API GitHub
+        id: get_tag
+        run: |
+          LATEST_TAG=$(gh api repos/${{ github.repository }}/git/matching-refs/tags/v --jq '.[-1].ref' | sed 's|refs/tags/||')
+          if [[ -z "$LATEST_TAG" ]]; then
+            echo "Aucun tag trouvé. Arrêt du workflow."
+            exit 1
+          fi
+          echo "tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   validate-and-release:
+    needs: determine-tag
     runs-on: windows-latest
     env:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: -D warnings
+      # Définition du tag selon l'événement déclencheur
+      TAG_NAME: ${{ github.event_name == 'push' && github.ref_name || needs.determine-tag.outputs.tag_name }}
 
     steps:
-      - name: Checkout repository
+      - name: Récupérer le code du dépôt
         uses: actions/checkout@v4
 
-      - name: Cache Cargo Registry
+      - name: Mise en cache du Cargo Registry
         uses: actions/cache@v3
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-registry-
 
-      - name: Cache Cargo Git Index
+      - name: Mise en cache du Cargo Git Index
         uses: actions/cache@v3
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-index-
 
-      - name: Install Rust
+      - name: Installer Rust
         shell: pwsh
         run: rustup update stable && rustup default stable
 
-      - name: Install PSSemVer
+      - name: Installer PSSemVer
         shell: pwsh
         run: |
           try {
             Import-Module -Name PSSemVer -ErrorAction Stop
           } catch {
-            Write-Host "Installing PSSemVer module..."
+            Write-Host "Installation du module PSSemVer..."
             Install-Module -Name PSSemVer -Scope CurrentUser -Force -ErrorAction Stop
             Import-Module -Name PSSemVer -ErrorAction Stop
           }
 
-      - name: Validate Tag with PSSemVer
+      - name: Valider le tag avec PSSemVer
         id: validate
         shell: pwsh
         run: |
-          # Récupère le nom du tag en supprimant le préfixe "v"
-          $tagName = "${{ github.ref_name }}"
+          # Récupérer le nom du tag en supprimant le préfixe "v"
+          $tagName = "${{ env.TAG_NAME }}"
           Import-Module -Name PSSemVer -ErrorAction Stop
           try {
               $rawVersion = $tagName -replace '^v', ''
               $Version = [PSSemVer]::Parse($rawVersion)
               
-              # Forcer le booléen à une chaîne en minuscules
+              # Convertir le booléen indiquant si la version est prerelease en chaîne en minuscules
               $prereleaseValue = ($Version.Prerelease -ne $null).ToString().ToLower()
               echo "prerelease=$prereleaseValue" >> $env:GITHUB_ENV
 
-              # Vérifier que le champ metadata est renseigné pour la version NuGet
-              if (-not [string]::IsNullOrEmpty($Version.metadata)) {
+              # Vérifier le champ metadata pour la version NuGet
+              if (-not [string]::IsNullOrEmpty($Version.BuildMetadata)) {
                 echo "nuget_version=$($Version.BuildMetadata)" >> $env:GITHUB_ENV
               } else {
-                Write-Error "BuildMetadata is empty. Cannot determine NuGet version."
-                exit 1
+                Write-Host "Aucune métadonnée trouvée dans le tag. Utilisation de la version sans métadonnée pour NuGet."
+                echo "nuget_version=$rawVersion" >> $env:GITHUB_ENV
               }
           } catch {
-              Write-Error "Tag name does not contain a valid semantic version. Current tag: $tagName"
+              Write-Error "Le nom du tag ne contient pas une version sémantique valide. Tag actuel : $tagName"
               exit 1
           }
         continue-on-error: false
 
-      - name: Cargo Publish Dry-Run
+      - name: Exécuter Cargo Publish en mode Dry-Run
         run: cargo publish --dry-run
 
-      - name: Create GitHub Release
+      - name: Créer une Release GitHub
         id: release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ env.prerelease == 'true' && 'Prerelease' || 'Release' }} ${{ github.ref_name }}
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.prerelease == 'true' && 'Prerelease' || 'Release' }} ${{ env.TAG_NAME }}
           body: |
-            This is a ${{ env.prerelease == 'true' && 'prerelease' || 'release' }} of the crate.
-            You can find the [crate here](https://crates.io/crates/${{ github.repository }}).
-            This version is a binding for the WSLPluginAPI v${{ env.nuget_version }} available on [NuGet](https://www.nuget.org/packages/Microsoft.WSL.PluginApi/${{ env.nuget_version }}).
+            Ceci est une ${{ env.prerelease == 'true' && 'prerelease' || 'release' }} de la crate.
+            Vous pouvez retrouver la [crate ici](https://crates.io/crates/${{ github.repository }}).
+            Cette version est un binding pour le WSLPluginAPI v${{ env.nuget_version }} disponible sur [NuGet](https://www.nuget.org/packages/Microsoft.WSL.PluginApi/${{ env.nuget_version }}).
           prerelease: ${{ env.prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
-      - name: Cargo Publish
+      - name: Publier sur Cargo
         run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
