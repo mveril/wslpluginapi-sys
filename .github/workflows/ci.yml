@@ -15,7 +15,6 @@ on:
 jobs:
   build-and-validate:
     runs-on: ${{ matrix.os }}
-    runs-on: [windows-latest, ubuntu-latest, macos-latest]
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
