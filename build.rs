@@ -2,10 +2,20 @@ extern crate bindgen;
 extern crate semver;
 
 use bindgen::callbacks::{ParseCallbacks, TypeKind};
+use cfg_if::cfg_if;
 use semver::Version;
 use std::env;
 use std::path::PathBuf;
-use std::process::Command;
+cfg_if! {
+    if #[cfg(feature = "no-nuget")] {
+        use reqwest::blocking::get;
+        use std::fs;
+        use zip::ZipArchive;
+        use tempfile::NamedTempFile;
+    } else {
+        use std::process::Command;
+    }
+}
 
 const WSL_PACKAGE_NAME: &str = "Microsoft.WSL.PluginApi";
 const LOCAL_NUGET_FOLDER: &str = "nuget_packages";
@@ -51,28 +61,65 @@ fn ensure_package_installed(
     package_name: &str,
     package_version: &str,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
-    let out_dir: PathBuf = env::var("OUT_DIR")?.into();
+    let out_dir: PathBuf = env::var("OUT_DIR")
+        .map(PathBuf::from)
+        .map_err(|_| "OUT_DIR environment variable is not set")?;
     let package_dir = out_dir.join(LOCAL_NUGET_FOLDER);
-    let status = Command::new("nuget")
-        .args([
-            "install",
-            package_name,
-            "-Version",
-            package_version,
-            "-OutputDirectory",
-            package_dir.to_str().unwrap(),
-            "-NonInteractive",
-        ])
-        .status()?;
+    let package_output = package_dir.join(format!("{}.{}", package_name, package_version));
 
-    if !status.success() {
-        return Err(format!(
-            "NuGet install command failed with status: {:?}",
-            status.code()
-        )
-        .into());
+    cfg_if! {
+        if #[cfg(feature = "no-nuget")] {
+            fs::create_dir_all(&package_dir)?;
+
+            let package_url = format!(
+                "https://www.nuget.org/api/v2/package/{}/{}",
+                package_name, package_version
+            );
+            println!("Downloading NuGet package from: {}", package_url);
+
+            let mut response = get(&package_url)?;
+            if !response.status().is_success() {
+                return Err(format!("Failed to download NuGet package: HTTP {}", response.status()).into());
+            }
+
+            // Créer un fichier temporaire pour stocker l'archive
+            let mut temp_file = NamedTempFile::new()?;
+            response.copy_to(&mut temp_file)?;
+
+            // Ouvrir le fichier temporaire pour extraction
+            let temp_path = temp_file.path();
+            let zip_file = fs::File::open(temp_path)?;
+            let mut archive = ZipArchive::new(zip_file)?;
+
+            println!("Extracting NuGet package to: {:?}", package_output);
+            archive.extract(&package_output)?;
+
+        } else {
+            println!("Installing NuGet package using NuGet CLI...");
+
+            let status = Command::new("nuget")
+                .args([
+                    "install",
+                    package_name,
+                    "-Version",
+                    package_version,
+                    "-OutputDirectory",
+                    package_dir.to_str().ok_or("Invalid package directory path")?,
+                    "-NonInteractive",
+                ])
+                .status()?;
+
+            if !status.success() {
+                return Err(format!(
+                    "NuGet install command failed with status: {:?}",
+                    status.code()
+                ).into());
+            }
+        }
     }
-    Ok(package_dir.join(format!("{}.{}", package_name, package_version)))
+
+    println!("NuGet package installed successfully: {:?}", package_output);
+    Ok(package_output)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

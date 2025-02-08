@@ -1,4 +1,5 @@
 name: rust
+
 on:
   push:
     branches:
@@ -13,22 +14,35 @@ on:
 
 jobs:
   build-and-validate:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    runs-on: [windows-latest, ubuntu-latest, macos-latest]
     strategy:
       matrix:
+        os: [windows-latest, ubuntu-latest]
+        toolchain: [stable, nightly]
         include:
-          - toolchain: stable
+          - os: windows-latest
+            toolchain: stable
             RUSTDOCFLAGS: "-D warnings"
             DOCTYPE: "docrs"
-          - toolchain: nightly
+          - os: windows-latest
+            toolchain: nightly
+            RUSTDOCFLAGS: "-D warnings --cfg docsrs"
+            DOCTYPE: "doc"
+          - os: ubuntu-latest
+            toolchain: stable
+            RUSTDOCFLAGS: "-D warnings"
+            DOCTYPE: "docrs"
+          - os: ubuntu-latest
+            toolchain: nightly
             RUSTDOCFLAGS: "-D warnings --cfg docsrs"
             DOCTYPE: "doc"
 
-    name: "Build and validate (${{ matrix.toolchain}})"
+    name: "Build and validate (${{ matrix.toolchain }})"
     env:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: -D warnings
-      RUSTDOCFLAGS: ${{ matrix.RUSTDOCFLAGS }}
+      RUSTDOCFLAGS: ${{ matrix.DOCTYPE }}
 
     steps:
       - name: Checkout Code
@@ -52,22 +66,36 @@ jobs:
         shell: pwsh
         run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
 
+      - name: Add Windows target (Ubuntu uniquement)
+        if: runner.os == 'Linux'
+        run: rustup target add x86_64-pc-windows-gnu
+
+      - name: Install MinGW (Ubuntu uniquement)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Configure linker for Windows target (Ubuntu uniquement)
+        if: runner.os == 'Linux'
+        run: |
+          echo '[target.x86_64-pc-windows-gnu]' >> ~/.cargo/config
+          echo 'linker = "x86_64-w64-mingw32-gcc"' >> ~/.cargo/config
+
       - name: Lint with Clippy (Stable Only)
         if: matrix.toolchain == 'stable'
-        run: cargo clippy --all-targets --all-features
+        run: cargo clippy --all-targets --all-features --target x86_64-pc-windows-gnu
 
       - name: Check Code Formatting (Stable Only)
         if: matrix.toolchain == 'stable'
         run: cargo fmt -- --check
 
       - name: Build the Project
-        run: cargo build --verbose
+        run: cargo build --verbose --target x86_64-pc-windows-gnu
 
       - name: Run Tests
-        run: cargo test --verbose
+        run: cargo test --verbose --target x86_64-pc-windows-gnu
 
       - name: Generate Documentation (${{ matrix.DOCTYPE }}, ${{ matrix.toolchain }})
-        run: cargo doc --no-deps --all-features
+        run: cargo doc --no-deps --all-features --target x86_64-pc-windows-gnu
 
       - name: Install and Run Security Audit (Nightly Only)
         if: matrix.toolchain == 'nightly'
