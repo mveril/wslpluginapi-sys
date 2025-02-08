@@ -7,18 +7,8 @@ authors = ["Mickaël Véril <mika.veril@wanadoo.fr>"]
 description = "Rust bindings for the WSL Plugin API"
 license = "MIT"
 repository = "https://github.com/mveril/wslpluginapi-sys"
-keywords = [
-  "wsl",
-  "plugin",
-  "windows",
-  "linux",
-  "ffi",
-]
-categories = [
-  "os::windows-apis",
-  "external-ffi-bindings",
-  "virtualization",
-]
+keywords = ["wsl", "plugin", "windows", "linux", "ffi"]
+categories = ["os::windows-apis", "external-ffi-bindings", "virtualization"]
 
 
 [features]
@@ -30,7 +20,7 @@ semver = "^1.0"
 
 [dependencies]
 libc = "0.2"
-struct-field-names-as-array = { version = "*", features = [
+struct-field-names-as-array = { version = "0.3", features = [
   "derive",
 ], optional = true }
 [dependencies.windows]
