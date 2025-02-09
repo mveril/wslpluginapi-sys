@@ -1,4 +1,5 @@
 name: rust
+
 on:
   push:
     branches:
@@ -88,34 +89,53 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: -D warnings
+      RUST_BACKTRACE: 1  # 🔍 Enable stack traces on error
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: 🔍 Debug System Information
+        run: |
+          echo "== SYSTEM INFORMATION =="
+          uname -a
+          rustc --version
+          cargo --version
+          echo "== ENVIRONMENT VARIABLES =="
+          env | sort
+          echo "== PATH =="
+          echo $PATH
+
       - name: Install Rust Stable Toolchain
         run: |
-          # Update and set the stable toolchain as default
           rustup update stable
           rustup default stable
+          rustup target add ${{ matrix.target }}
 
-      - name: Install MinGW for cross-compilation (Linux)
+      - name: 🛠 Install MinGW for cross-compilation (Linux)
         if: runner.os == 'Linux'
         run: |
-          # Update package list and install MinGW on Linux
           sudo apt-get update
           sudo apt-get install -y mingw-w64
+          echo "== CHECK INSTALLED FILES =="
+          which x86_64-w64-mingw32-gcc
+          x86_64-w64-mingw32-gcc --version
+          echo "== CHECK HEADERS =="
+          find /usr -name "Windows.h"
+          echo "== CHECK LIBRARIES =="
+          ls -l /usr/lib/gcc/x86_64-w64-mingw32/
 
-      - name: Install MinGW for cross-compilation (macOS)
+      - name: 🛠 Install MinGW for cross-compilation (macOS)
         if: runner.os == 'macos'
         run: |
-          # Update Homebrew and install MinGW on macOS
           brew update
           brew install mingw-w64
-
-      - name: Add Windows Target
-        run: |
-          # Add the Windows GNU target for cross-compilation
-          rustup target add ${{ matrix.target }}
+          echo "== CHECK INSTALLED FILES =="
+          which x86_64-w64-mingw32-gcc
+          x86_64-w64-mingw32-gcc --version
+          echo "== CHECK HEADERS =="
+          find /usr/local -name "Windows.h"
+          echo "== CHECK LIBRARIES =="
+          ls -l /usr/local/opt/mingw-w64/lib
 
       - name: Configure linker
         run: |
@@ -125,7 +145,22 @@ jobs:
           linker = "x86_64-w64-mingw32-gcc"
           EOF
 
+      - name: 🔍 Debug Cargo Configuration
+        run: |
+          echo "== DEBUG CARGO CONFIGURATION =="
+          cat .cargo/config.toml || echo "No Cargo config found"
+
+      - name: 🔍 Debug Compilation Environment
+        run: |
+          echo "== DEBUG COMPILATION ENVIRONMENT =="
+          x86_64-w64-mingw32-gcc -v
+          echo "== CHECK LIBRARY PATHS =="
+          echo $LIBRARY_PATH
+          echo "== CHECK INCLUDE PATHS =="
+          echo $C_INCLUDE_PATH
+          echo "== LIST FILES IN TARGET DIRECTORY =="
+          ls -R target/ || echo "No target directory found"
+
       - name: Build Project for Windows Target
         run: |
-          # Build the project for the Windows target with verbose output
           cargo build --target ${{ matrix.target }} --all-features --verbose
