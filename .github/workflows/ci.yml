@@ -1,5 +1,4 @@
 name: rust
-
 on:
   push:
     branches:
@@ -14,34 +13,22 @@ on:
 
 jobs:
   build-and-validate:
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
-        toolchain: [stable, nightly]
         include:
-          - os: windows-latest
-            toolchain: stable
+          - toolchain: stable
             RUSTDOCFLAGS: "-D warnings"
             DOCTYPE: "docrs"
-          - os: windows-latest
-            toolchain: nightly
-            RUSTDOCFLAGS: "-D warnings --cfg docsrs"
-            DOCTYPE: "doc"
-          - os: ubuntu-latest
-            toolchain: stable
-            RUSTDOCFLAGS: "-D warnings"
-            DOCTYPE: "docrs"
-          - os: ubuntu-latest
-            toolchain: nightly
+          - toolchain: nightly
             RUSTDOCFLAGS: "-D warnings --cfg docsrs"
             DOCTYPE: "doc"
 
-    name: "Build and validate (${{ matrix.toolchain }})"
+    name: "Build and validate (${{ matrix.toolchain}})"
     env:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: -D warnings
-      RUSTDOCFLAGS: ${{ matrix.DOCTYPE }}
+      RUSTDOCFLAGS: ${{ matrix.RUSTDOCFLAGS }}
 
     steps:
       - name: Checkout Code
@@ -65,39 +52,69 @@ jobs:
         shell: pwsh
         run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
 
-      - name: Add Windows target (Ubuntu uniquement)
-        if: runner.os == 'Linux'
-        run: rustup target add x86_64-pc-windows-gnu
-
-      - name: Install MinGW (Ubuntu uniquement)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y mingw-w64
-
-      - name: Configure linker for Windows target (Ubuntu uniquement)
-        if: runner.os == 'Linux'
-        run: |
-          echo '[target.x86_64-pc-windows-gnu]' >> ~/.cargo/config
-          echo 'linker = "x86_64-w64-mingw32-gcc"' >> ~/.cargo/config
-
       - name: Lint with Clippy (Stable Only)
         if: matrix.toolchain == 'stable'
-        run: cargo clippy --all-targets --all-features --target x86_64-pc-windows-gnu
+        run: cargo clippy --all-targets --features="runtime-features"
 
       - name: Check Code Formatting (Stable Only)
         if: matrix.toolchain == 'stable'
         run: cargo fmt -- --check
 
-      - name: Build the Project
-        run: cargo build --verbose --target x86_64-pc-windows-gnu
+      - name: Build the Project with nuget
+        run: cargo build --features="runtime-features" --verbose
+
+      - name: Build the Project without nuget
+        run: cargo build --all-features --verbose
 
       - name: Run Tests
-        run: cargo test --verbose --target x86_64-pc-windows-gnu
+        run: cargo test --features="runtime-features" --verbose
 
       - name: Generate Documentation (${{ matrix.DOCTYPE }}, ${{ matrix.toolchain }})
-        run: cargo doc --no-deps --all-features --target x86_64-pc-windows-gnu
+        run: cargo doc --no-deps --features="runtime-features"
 
       - name: Install and Run Security Audit (Nightly Only)
         if: matrix.toolchain == 'nightly'
         run: |
           cargo install cargo-audit
           cargo audit
+
+  cross-compile:
+    name: "Cross Compilation for Windows (${{ matrix.target }}) on ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        target: [x86_64-pc-windows-gnu]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Stable Toolchain
+        run: |
+          # Update and set the stable toolchain as default
+          rustup update stable
+          rustup default stable
+
+      - name: Install MinGW for cross-compilation (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Update package list and install MinGW on Linux
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64
+
+      - name: Install MinGW for cross-compilation (macOS)
+        if: runner.os == 'macos'
+        run: |
+          # Update Homebrew and install MinGW on macOS
+          brew update
+          brew install mingw-w64
+
+      - name: Add Windows Target
+        run: |
+          # Add the Windows GNU target for cross-compilation
+          rustup target add ${{ matrix.target }}
+
+      - name: Build Project for Windows Target
+        run: |
+          # Build the project for the Windows target with verbose output
+          cargo build --target ${{ matrix.target }} --all-features --verbose
