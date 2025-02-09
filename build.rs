@@ -171,6 +171,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         builder = builder.raw_line("use struct_field_names_as_array::FieldNamesAsSlice;");
     }
 
+    if std::env::var("HOST").unwrap() != std::env::var("TARGET").unwrap() {
+        builder = builder.clang_arg(format!("--target={}", std::env::var("TARGET").unwrap()));
+    }
+
     // Generate Rust bindings
     let api_header = builder.generate()?;
 
