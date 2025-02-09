@@ -114,23 +114,6 @@ jobs:
           brew update
           brew install mingw-w64
 
-      - name: Configure MinGW environment
-        run: |
-          # Try to get the sysroot using -print-sysroot
-          SYSROOT=$(x86_64-w64-mingw32-gcc -print-sysroot | tr -d '\n')
-          # If the command returns nothing, we set the default sysroot for Ubuntu
-          if [ -z "$SYSROOT" ]; then
-            echo "No sysroot detected via -print-sysroot, using /usr/x86_64-w64-mingw32"
-            SYSROOT="/usr/x86_64-w64-mingw32"
-          fi
-
-          echo "Detected sysroot: $SYSROOT"
-
-          # Set environment variables for gcc to find includes and libraries
-          echo "C_INCLUDE_PATH=${SYSROOT}/include" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=${SYSROOT}/lib" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=${SYSROOT}/lib/pkgconfig" >> $GITHUB_ENV
-
       - name: Build Project for Windows Target
         run: |
           cargo build --target=${{ matrix.target }} --all-features --verbose
