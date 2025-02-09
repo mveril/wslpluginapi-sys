@@ -90,6 +90,7 @@ jobs:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: -D warnings
       RUST_BACKTRACE: 1 # 🔍 Enable stack traces on error
+      CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -111,14 +112,6 @@ jobs:
         run: |
           brew update
           brew install mingw-w64
-
-      - name: Configure linker
-        run: |
-          mkdir -p .cargo
-          cat > .cargo/config.toml << EOF
-          [target.${{ matrix.target }}]
-          linker = "x86_64-w64-mingw32-gcc"
-          EOF
 
       - name: Configure MinGW environment
         run: |
