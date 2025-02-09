@@ -94,48 +94,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🔍 Debug System Information
-        run: |
-          echo "== SYSTEM INFORMATION =="
-          uname -a
-          rustc --version
-          cargo --version
-          echo "== ENVIRONMENT VARIABLES =="
-          env | sort
-          echo "== PATH =="
-          echo $PATH
-
       - name: Install Rust Stable Toolchain
         run: |
           rustup update stable
           rustup default stable
           rustup target add ${{ matrix.target }}
 
-      - name: 🛠 Install MinGW for cross-compilation (Linux)
+      - name: Install MinGW for cross-compilation (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y mingw-w64
-          echo "== CHECK INSTALLED FILES =="
-          which x86_64-w64-mingw32-gcc
-          x86_64-w64-mingw32-gcc --version
 
-      - name: 🛠 Install MinGW for cross-compilation (macOS)
+      - name: Install MinGW for cross-compilation (macOS)
         if: runner.os == 'macos'
         run: |
           brew update
           brew install mingw-w64
-          echo "== CHECK INSTALLED FILES =="
-          which x86_64-w64-mingw32-gcc
-          x86_64-w64-mingw32-gcc --version
-
-      - name: 🔍 Debug mingw Environment
-        run: |
-          echo "== DEBUG MINGW ENVIRONMENT =="
-          which x86_64-w64-mingw32-gcc
-          x86_64-w64-mingw32-gcc -v
-          x86_64-w64-mingw32-gcc --version
-          x86_64-w64-mingw32-gcc -print-sysroot
 
       - name: Configure linker
         run: |
@@ -145,38 +120,23 @@ jobs:
           linker = "x86_64-w64-mingw32-gcc"
           EOF
 
-      - name: 🔍 Debug Cargo Configuration
+      - name: Configure MinGW environment
         run: |
-          echo "== DEBUG CARGO CONFIGURATION =="
-          cat .cargo/config.toml || echo "No Cargo config found"
-
-      - name: 🔍 Debug Compilation Environment
-        run: |
-          echo "== DEBUG COMPILATION ENVIRONMENT =="
-          x86_64-w64-mingw32-gcc -v
-          x86_64-w64-mingw32-gcc -print-sysroot
-          echo "== CHECK LIBRARY PATHS =="
-          echo $LIBRARY_PATH
-          echo "== CHECK INCLUDE PATHS =="
-          echo $C_INCLUDE_PATH
-          echo "== LIST FILES IN TARGET DIRECTORY =="
-          ls -R target/ || echo "No target directory found"
-      
-      - name: Configurer l'environnement mingw avec les commandes print
-        run: |
+          # Try to get the sysroot using -print-sysroot
           SYSROOT=$(x86_64-w64-mingw32-gcc -print-sysroot | tr -d '\n')
-          echo "Sysroot detected: $SYSROOT"
+          # If the command returns nothing, we set the default sysroot for Ubuntu
+          if [ -z "$SYSROOT" ]; then
+            echo "No sysroot detected via -print-sysroot, using /usr/x86_64-w64-mingw32"
+            SYSROOT="/usr/x86_64-w64-mingw32"
+          fi
 
-          # Defining MinGW environment variables
+          echo "Detected sysroot: $SYSROOT"
+
+          # Set environment variables for gcc to find includes and libraries
           echo "C_INCLUDE_PATH=${SYSROOT}/include" >> $GITHUB_ENV
           echo "LIBRARY_PATH=${SYSROOT}/lib" >> $GITHUB_ENV
           echo "PKG_CONFIG_PATH=${SYSROOT}/lib/pkgconfig" >> $GITHUB_ENV
 
-          # Pour vérification, afficher les valeurs détectées
-          echo "C_INCLUDE_PATH = $C_INCLUDE_PATH"
-          echo "LIBRARY_PATH   = $LIBRARY_PATH"
-          echo "PKG_CONFIG_PATH = $PKG_CONFIG_PATH"
-          
       - name: Build Project for Windows Target
         run: |
           cargo build --target ${{ matrix.target }} --all-features --verbose
