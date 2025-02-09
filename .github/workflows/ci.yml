@@ -87,7 +87,7 @@ jobs:
         target: [x86_64-pc-windows-gnu]
     env:
       CARGO_TERM_COLOR: always
-      RUSTFLAGS: -D warnings -C linker=x86_64-w64-mingw32-gcc
+      RUSTFLAGS: -D warnings
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -116,6 +116,14 @@ jobs:
         run: |
           # Add the Windows GNU target for cross-compilation
           rustup target add ${{ matrix.target }}
+
+      - name: Configure linker
+        run: |
+          mkdir -p .cargo
+          cat > .cargo/config.toml << EOF
+          [target.${{ matrix.target }}]
+          linker = "x86_64-w64-mingw32-gcc"
+          EOF
 
       - name: Build Project for Windows Target
         run: |
