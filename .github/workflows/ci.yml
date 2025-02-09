@@ -91,6 +91,7 @@ jobs:
       RUSTFLAGS: -D warnings
       RUST_BACKTRACE: 1 # 🔍 Enable stack traces on error
       CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
+      CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -100,6 +101,7 @@ jobs:
           rustup update stable
           rustup default stable
           rustup target add ${{ matrix.target }}
+          rustup default-target ${{ matrix.target }}
 
       - name: Install MinGW for cross-compilation (Linux)
         if: runner.os == 'Linux'
@@ -132,4 +134,4 @@ jobs:
 
       - name: Build Project for Windows Target
         run: |
-          cargo build --target ${{ matrix.target }} --all-features --verbose
+          cargo build --all-features --verbose
