@@ -89,7 +89,7 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: -D warnings
-      RUST_BACKTRACE: 1  # 🔍 Enable stack traces on error
+      RUST_BACKTRACE: 1 # 🔍 Enable stack traces on error
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -119,10 +119,6 @@ jobs:
           echo "== CHECK INSTALLED FILES =="
           which x86_64-w64-mingw32-gcc
           x86_64-w64-mingw32-gcc --version
-          echo "== CHECK HEADERS =="
-          find /usr -name "Windows.h"
-          echo "== CHECK LIBRARIES =="
-          ls -l /usr/lib/gcc/x86_64-w64-mingw32/
 
       - name: 🛠 Install MinGW for cross-compilation (macOS)
         if: runner.os == 'macos'
@@ -132,10 +128,14 @@ jobs:
           echo "== CHECK INSTALLED FILES =="
           which x86_64-w64-mingw32-gcc
           x86_64-w64-mingw32-gcc --version
-          echo "== CHECK HEADERS =="
-          find /usr/local -name "Windows.h"
-          echo "== CHECK LIBRARIES =="
-          ls -l /usr/local/opt/mingw-w64/lib
+
+      - name: 🔍 Debug mingw Environment
+        run: |
+          echo "== DEBUG MINGW ENVIRONMENT =="
+          which x86_64-w64-mingw32-gcc
+          x86_64-w64-mingw32-gcc -v
+          x86_64-w64-mingw32-gcc --version
+          x86_64-w64-mingw32-gcc -print-sysroot
 
       - name: Configure linker
         run: |
