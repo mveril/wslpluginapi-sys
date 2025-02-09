@@ -101,7 +101,6 @@ jobs:
           rustup update stable
           rustup default stable
           rustup target add ${{ matrix.target }}
-          rustup default-target ${{ matrix.target }}
 
       - name: Install MinGW for cross-compilation (Linux)
         if: runner.os == 'Linux'
@@ -134,4 +133,4 @@ jobs:
 
       - name: Build Project for Windows Target
         run: |
-          cargo build --all-features --verbose
+          cargo build --target=${{ matrix.target }} --all-features --verbose
