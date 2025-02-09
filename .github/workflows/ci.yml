@@ -85,6 +85,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         target: [x86_64-pc-windows-gnu]
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings -c linker=x86_64-w64-mingw32-gcc
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
