@@ -12,7 +12,11 @@ categories = ["os::windows-apis", "external-ffi-bindings", "virtualization"]
 
 
 [features]
+# Enables all features that modify the library's behavior at runtime.
+# Unlike build-related features, this impacts the API's functionalities.
+runtime-features = ["hooks-field-names"]
 hooks-field-names = ["dep:struct-field-names-as-array"]
+# build features
 no-nuget = ["dep:zip", "dep:reqwest", "dep:tempfile"]
 
 [build-dependencies]
