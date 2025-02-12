@@ -3,13 +3,17 @@ extern crate semver;
 
 use bindgen::callbacks::{ParseCallbacks, TypeKind};
 use cfg_if::cfg_if;
+use constcat::concat;
 use semver::Version;
+use std::collections::HashMap;
 use std::env;
-use std::path::PathBuf;
+use std::fs;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+
 cfg_if! {
     if #[cfg(feature = "no-nuget")] {
         use reqwest::blocking::get;
-        use std::fs;
         use zip::ZipArchive;
         use tempfile::NamedTempFile;
     } else {
@@ -19,7 +23,9 @@ cfg_if! {
 
 const WSL_PACKAGE_NAME: &str = "Microsoft.WSL.PluginApi";
 const LOCAL_NUGET_FOLDER: &str = "nuget_packages";
-const WSL_PLUGIN_API_BINDGEN_OUTPUT_FILE_NAME: &str = "WSLPluginApi.rs";
+const WSL_PLUGIN_API_FILE_NAME: &str = "WslPluginApi";
+const WSL_PLUGIN_API_BINDGEN_OUTPUT_FILE_NAME: &str = concat!(WSL_PLUGIN_API_FILE_NAME, ".rs");
+const WSL_PLUGIN_API_HEADER_FILE: &str = concat!(WSL_PLUGIN_API_FILE_NAME, ".h");
 
 #[derive(Debug, Default)]
 struct BindgenCallback {
@@ -56,14 +62,11 @@ impl ParseCallbacks for BindgenCallback {
     }
 }
 
-/// Ensures that the NuGet package is installed in the local folder.
 fn ensure_package_installed(
     package_name: &str,
     package_version: &str,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
-    let out_dir: PathBuf = env::var("OUT_DIR")
-        .map(PathBuf::from)
-        .map_err(|_| "OUT_DIR environment variable is not set")?;
+    let out_dir: PathBuf = env::var("OUT_DIR")?.into();
     let package_dir = out_dir.join(LOCAL_NUGET_FOLDER);
     let package_output = package_dir.join(format!("{}.{}", package_name, package_version));
 
@@ -82,11 +85,9 @@ fn ensure_package_installed(
                 return Err(format!("Failed to download NuGet package: HTTP {}", response.status()).into());
             }
 
-            // Créer un fichier temporaire pour stocker l'archive
             let mut temp_file = NamedTempFile::new()?;
             response.copy_to(&mut temp_file)?;
 
-            // Ouvrir le fichier temporaire pour extraction
             let temp_path = temp_file.path();
             let zip_file = fs::File::open(temp_path)?;
             let mut archive = ZipArchive::new(zip_file)?;
@@ -122,35 +123,62 @@ fn ensure_package_installed(
     Ok(package_output)
 }
 
+fn rust_to_llvm_target() -> HashMap<&'static str, &'static str> {
+    HashMap::from([
+        ("x86_64-pc-windows-gnu", "x86_64-w64-mingw32"),
+        ("i686-pc-windows-gnu", "i686-w64-mingw32"),
+        ("aarch64-pc-windows-gnu", "aarch64-w64-mingw32"),
+        ("x86_64-pc-windows-msvc", "x86_64-windows-msvc"),
+        ("i686-pc-windows-msvc", "i686-windows-msvc"),
+        ("aarch64-pc-windows-msvc", "aarch64-windows-msvc"),
+    ])
+}
+
+/// If the host is not Windows, replace `Windows.h` with `windows.h` in a temporary file.
+#[cfg(unix)]
+fn preprocess_header<P: AsRef<Path>>(
+    header_path: P,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(&header_path)?;
+    let modified_content = content.replace("Windows.h", "windows.h");
+
+    let out_dir: PathBuf = env::var("OUT_DIR")?.into();
+    let comp_h_file_path = out_dir.join("unix_".to_string() + WSL_PLUGIN_API_HEADER_FILE);
+    fs::File::create(&comp_h_file_path)?.write_all(modified_content.as_bytes())?;
+    println!("Using modified header file at: {:?}", &comp_h_file_path);
+    Ok(comp_h_file_path)
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=build.rs");
+    let host = env::var("HOST")?;
+    let target = env::var("TARGET")?;
 
-    // Extract version from Cargo package metadata
     let version = Version::parse(env!("CARGO_PKG_VERSION"))?;
     println!("cargo:version={}", version);
-
-    if !version.build.is_empty() {
-        println!("cargo:build-metadata={}", version.build);
-    }
 
     let package_version = version.build.to_string();
     let out_path: PathBuf = env::var("OUT_DIR")?.into();
 
-    // Ensure the NuGet package is installed
     let package_path = ensure_package_installed(WSL_PACKAGE_NAME, &package_version)?;
 
-    // Construct paths
-    let header_file_path = package_path.join("build/native/include/WslPluginApi.h");
+    let header_file_path = package_path.join(format!(
+        "build/native/include/{}",
+        WSL_PLUGIN_API_HEADER_FILE
+    ));
 
     if !header_file_path.exists() {
         return Err(format!("Header file does not exist: {:?}", header_file_path).into());
     }
 
-    println!("Using header file from: {:?}", header_file_path);
-
+    let header_path: PathBuf = if cfg!(unix) {
+        preprocess_header(&header_file_path)?
+    } else {
+        header_file_path
+    };
     let hooks_fields_name_feature = env::var("CARGO_FEATURE_HOOKS_FIELD_NAMES").is_ok();
     let mut builder = bindgen::Builder::default()
-        .header(header_file_path.to_str().unwrap())
+        .header(header_path.to_str().unwrap())
         .raw_line("use windows::core::*;")
         .raw_line("use windows::Win32::Foundation::*;")
         .raw_line("use windows::Win32::Security::*;")
@@ -171,14 +199,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         builder = builder.raw_line("use struct_field_names_as_array::FieldNamesAsSlice;");
     }
 
-    if std::env::var("HOST").unwrap() != std::env::var("TARGET").unwrap() {
-        builder = builder.clang_arg(format!("--target={}", std::env::var("TARGET").unwrap()));
+    if host != target {
+        builder = builder.clang_arg(format!(
+            "--target={}",
+            rust_to_llvm_target()[target.as_str()]
+        ))
     }
 
-    // Generate Rust bindings
     let api_header = builder.generate()?;
-
-    // Write bindings to OUT_DIR
     let out_file = out_path.join(WSL_PLUGIN_API_BINDGEN_OUTPUT_FILE_NAME);
     api_header.write_to_file(&out_file)?;
 
