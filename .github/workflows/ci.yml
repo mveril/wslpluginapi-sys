@@ -106,13 +106,13 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y mingw-w64
+          sudo apt-get install -y clang llvm mingw-w64
 
       - name: Install MinGW for cross-compilation (macOS)
         if: runner.os == 'macos'
         run: |
           brew update
-          brew install mingw-w64
+          brew install llvm mingw-w64
 
       - name: Build Project for Windows Target
         run: |
