@@ -8,8 +8,9 @@ use semver::Version;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
+#[cfg(unix)]
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 cfg_if! {
     if #[cfg(feature = "no-nuget")] {
@@ -170,15 +171,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !header_file_path.exists() {
         return Err(format!("Header file does not exist: {:?}", header_file_path).into());
     }
-
-    let header_path: PathBuf = if cfg!(unix) {
-        preprocess_header(&header_file_path)?
-    } else {
-        header_file_path
-    };
+    #[cfg(unix)]
+    let header_file_path: PathBuf = preprocess_header(&header_file_path)?
     let hooks_fields_name_feature = env::var("CARGO_FEATURE_HOOKS_FIELD_NAMES").is_ok();
     let mut builder = bindgen::Builder::default()
-        .header(header_path.to_str().unwrap())
+        .header(header_file_path.to_str().unwrap())
         .raw_line("use windows::core::*;")
         .raw_line("use windows::Win32::Foundation::*;")
         .raw_line("use windows::Win32::Security::*;")
