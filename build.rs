@@ -11,7 +11,10 @@ use std::env;
 use std::fs;
 #[cfg(unix)]
 use std::io::Write;
+#[cfg(not(unix))]
 use std::path::PathBuf;
+#[cfg(unix)]
+use std::path::{Path, PathBuf};
 
 cfg_if! {
     if #[cfg(feature = "no-nuget")] {
