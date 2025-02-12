@@ -7,7 +7,7 @@ use constcat::concat;
 use semver::Version;
 use std::collections::HashMap;
 use std::env;
-#[cfg(any(unix, feature="no-nuget"))]
+#[cfg(any(unix, feature = "no-nuget"))]
 use std::fs;
 #[cfg(unix)]
 use std::io::Write;
