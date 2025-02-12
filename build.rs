@@ -7,6 +7,7 @@ use constcat::concat;
 use semver::Version;
 use std::collections::HashMap;
 use std::env;
+#[cfg(unix)]
 use std::fs;
 #[cfg(unix)]
 use std::io::Write;
@@ -172,7 +173,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("Header file does not exist: {:?}", header_file_path).into());
     }
     #[cfg(unix)]
-    let header_file_path: PathBuf = preprocess_header(&header_file_path)?
+    let header_file_path: PathBuf = preprocess_header(&header_file_path)?;
     let hooks_fields_name_feature = env::var("CARGO_FEATURE_HOOKS_FIELD_NAMES").is_ok();
     let mut builder = bindgen::Builder::default()
         .header(header_file_path.to_str().unwrap())
