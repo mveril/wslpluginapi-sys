@@ -124,9 +124,10 @@ jobs:
           echo "CPPFLAGS=-I$(brew --prefix llvm)/include" >> $GITHUB_ENV
           echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
           echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
-          # Specific variable for cross-compilation
           echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_CC=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
           echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_CXX=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
+          # Add MinGW to the PATH
+          echo "CPATH=$(brew --prefix mingw-w64)/x86_64-w64-mingw32/include" >> $GITHUB_ENV
 
       - name: Build Project for Windows Target
         run: |
