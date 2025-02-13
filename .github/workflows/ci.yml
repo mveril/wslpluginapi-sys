@@ -119,7 +119,7 @@ jobs:
           echo "CARGO_TARGET_${var_name}_AR=${{ matrix.target.ar }}" >> $GITHUB_ENV
 
       - name: Build Project for target ${{ matrix.target.triple }}
-        run: cargo build --target=${{ matrix.target.triple }} --release
+        run: cargo build --target=${{ matrix.target.triple }} --features=no-nuget --release
 
       - name: Run doc
         run: cargo doc --target=${{ matrix.target }} --no-deps --all-features"
