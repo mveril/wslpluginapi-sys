@@ -122,4 +122,4 @@ jobs:
         run: cargo build --target=${{ matrix.target.triple }} --features=no-nuget --release
 
       - name: Run doc
-        run: cargo doc --target=${{ matrix.target }} --no-deps --all-features
+        run: cargo doc --target=${{ matrix.target.triple }} --no-deps --all-features
