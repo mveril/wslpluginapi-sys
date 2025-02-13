@@ -84,7 +84,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         target: [x86_64-pc-windows-gnu]
     env:
       CARGO_TERM_COLOR: always
@@ -107,27 +107,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm mingw-w64
-
-      - name: Install MinGW for cross-compilation (macOS)
-        if: runner.os == 'macos'
-        run: |
-          brew update
-          brew install llvm mingw-w64
-
-      - name: Set up environment variables for macOS
-        if: runner.os == 'macos'
-        run: |
-          echo "LLVM_PREFIX=$(brew --prefix llvm)" >> $GITHUB_ENV
-          echo "MINGW_PREFIX=$(brew --prefix mingw-w64)" >> $GITHUB_ENV
-          echo "PATH=$(brew --prefix llvm)/bin:$PATH" >> $GITHUB_ENV
-          echo "LDFLAGS=-L$(brew --prefix llvm)/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$(brew --prefix llvm)/include" >> $GITHUB_ENV
-          echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
-          echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
-          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_CC=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
-          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_CXX=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
-          # Add MinGW to the PATH
-          echo "CPATH=$(brew --prefix mingw-w64)/x86_64-w64-mingw32/include" >> $GITHUB_ENV
 
       - name: Build Project for Windows Target
         run: |
