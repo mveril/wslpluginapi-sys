@@ -111,3 +111,6 @@ jobs:
       - name: Build Project for Windows Target
         run: |
           cargo build --target=${{ matrix.target }} --all-features --verbose
+
+      - name: Run doc
+        run: cargo doc --target=${{ matrix.target }} --no-deps --all-features"
