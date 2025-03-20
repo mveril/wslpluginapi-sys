@@ -9,7 +9,7 @@ license = "MIT"
 repository = "https://github.com/mveril/wslpluginapi-sys"
 keywords = ["wsl", "plugin", "windows", "linux", "ffi"]
 categories = ["os::windows-apis", "external-ffi-bindings", "virtualization"]
-
+build = "build/main.rs"
 
 [features]
 # Enables all features that modify the library's behavior at runtime.
