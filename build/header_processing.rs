@@ -1,11 +1,8 @@
-use std::{
-    collections::HashMap,
-    env,
-    path::{Path, PathBuf},
-};
+use std::{borrow::Cow, collections::HashMap, env, path::Path};
 
 use bindgen::callbacks::{ParseCallbacks, TypeKind};
 
+use cfg_if::cfg_if;
 #[derive(Debug, Default)]
 struct BindgenCallback {
     generate_hooks_fields_name: bool,
@@ -81,11 +78,18 @@ pub(crate) fn process<P: AsRef<Path>, S: AsRef<str>>(
 ) -> Result<bindgen::Bindings, Box<dyn std::error::Error>> {
     let host = host.as_ref();
     let target = target.as_ref();
-    #[cfg(unix)]
-    let header_file_path: PathBuf = preprocess_header(header_file_path.as_ref())?;
+    // Here we use cow to have the same type and avoiding clowning the PathBuff
+    cfg_if! {
+        if #[cfg(unix)] {
+            let header_file_path = Cow::Owned(preprocess_header(header_file_path)?);
+        }
+        else {
+            let header_file_path = Cow::Borrowed(header_file_path.as_ref());
+        }
+    }
     let hooks_fields_name_feature = env::var("CARGO_FEATURE_HOOKS_FIELD_NAMES").is_ok();
     let mut builder = bindgen::Builder::default()
-        .header(header_file_path.as_ref().to_str().unwrap())
+        .header(header_file_path.to_str().unwrap())
         .raw_line("use windows::core::*;")
         .raw_line("use windows::Win32::Foundation::*;")
         .raw_line("use windows::Win32::Security::*;")
