@@ -5,12 +5,42 @@ on:
     tags:
       - "v*"
 
+  workflow_run:
+    workflows: ["Tag on Merge to Main"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+  packages: write
+
 jobs:
+  determine-tag:
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.get_tag.outputs.tag }}
+    steps:
+      - name: Retrieve the latest tag via the GitHub API
+        id: get_tag
+        run: |
+          LATEST_TAG=$(gh api repos/${{ github.repository }}/git/matching-refs/tags/v --jq '.[-1].ref' | sed 's|refs/tags/||')
+          if [[ -z "$LATEST_TAG" ]]; then
+            echo "No tag found. Stopping workflow."
+            exit 1
+          fi
+          echo "tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   validate-and-release:
+    needs: determine-tag
     runs-on: windows-latest
     env:
       CARGO_TERM_COLOR: always
       RUSTFLAGS: -D warnings
+      # Define the tag based on the triggering event
+      TAG_NAME: ${{ github.event_name == 'push' && github.ref_name || needs.determine-tag.outputs.tag_name }}
 
     steps:
       - name: Checkout repository
@@ -45,39 +75,50 @@ jobs:
             Import-Module -Name PSSemVer -ErrorAction Stop
           }
 
-      - name: Validate Tag with PSSemVer
+      - name: Validate tag with PSSemVer
         id: validate
         shell: pwsh
         run: |
-          $tagName = "${{ github.ref_name }}"
+          # Extract the tag name by removing the "v" prefix
+          $tagName = "${{ env.TAG_NAME }}"
           Import-Module -Name PSSemVer -ErrorAction Stop
           try {
               $rawVersion = $tagName -replace '^v', ''
               $Version = [PSSemVer]::Parse($rawVersion)
-              echo "prerelease=$($Version.Prerelease -ne $null)" >> $env:GITHUB_ENV
-              echo "nuget_version=$($Version.metadata)" >> $env:GITHUB_ENV
+              
+              # Convert the prerelease boolean to lowercase string
+              $prereleaseValue = ($Version.Prerelease -ne $null).ToString().ToLower()
+              echo "prerelease=$prereleaseValue" >> $env:GITHUB_ENV
+
+              # Check the metadata field for the NuGet version
+              if (-not [string]::IsNullOrEmpty($Version.BuildMetadata)) {
+                echo "nuget_version=$($Version.BuildMetadata)" >> $env:GITHUB_ENV
+              } else {
+                Write-Host "No metadata found in the tag. Using the version without metadata for NuGet."
+                echo "nuget_version=$rawVersion" >> $env:GITHUB_ENV
+              }
           } catch {
-              Write-Error "Tag name does not contain a valid semantic version. Current tag: $tagName"
+              Write-Error "The tag name does not contain a valid semantic version. Current tag: $tagName"
               exit 1
           }
         continue-on-error: false
 
-      - name: Cargo Publish Dry-Run
+      - name: Run Cargo Publish in Dry-Run Mode
         run: cargo publish --dry-run
 
       - name: Create GitHub Release
         id: release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ env.prerelease == 'true' && 'Prerelease' || 'Release' }} ${{ github.ref_name }}
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.prerelease == 'true' && 'Prerelease' || 'Release' }} ${{ env.TAG_NAME }}
           body: |
-            This is a ${{ env.prerelease == 'true' && 'prerelease' || 'release' }} of the crate.
-            You can find the [crate here](https://crates.io/crates/${{ github.repository }}).
-            This version is a binding for the WSLPluginAPI v${{ env.nuget_version }} available on [NuGet](https://www.nuget.org/packages/Microsoft.WSL.PluginApi/${{ env.nuget_version }}).
+            This is a **${{ env.prerelease == 'true' && 'prerelease' || 'release' }}** of **${{ github.repository }}**.
+            - The crate is available on [Crates.io](https://crates.io/crates/${{ github.repository }}).
+            - This version provides bindings for **WSLPluginAPI v${{ env.nuget_version }}**, which can be found on [NuGet](https://www.nuget.org/packages/Microsoft.WSL.PluginApi/${{ env.nuget_version }}).
           prerelease: ${{ env.prerelease == 'true' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cargo Publish
+      - name: Cargo Publish Cargo
         run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

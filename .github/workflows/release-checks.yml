@@ -1,3 +1,4 @@
+name: Release Checks
 on:
   push:
     branches:
@@ -30,79 +31,68 @@ jobs:
       - name: Cache PowerShell Modules
         uses: actions/cache@v3
         with:
-          path: |
-            $env:USERPROFILE\Documents\WindowsPowerShell\Modules
+          path: C:\Users\runneradmin\Documents\PowerShell\Modules
           key: ${{ runner.os }}-powershell-modules
           restore-keys: ${{ runner.os }}-powershell-modules-
 
       - name: Install Rust
         shell: pwsh
-        run: rustup update stable && rustup default stable
+        run: |
+          rustup update stable
+          rustup default stable
 
       - name: Install PSSemVer
         shell: pwsh
         run: |
-          try {
-            Import-Module -Name PSSemVer -ErrorAction Stop
-          } catch {
-            Write-Host "Installing PSSemVer module..."
+          if (-not (Get-Module -ListAvailable -Name PSSemVer)) {
             Install-Module -Name PSSemVer -Scope CurrentUser -Force -ErrorAction Stop
-            Import-Module -Name PSSemVer -ErrorAction Stop
           }
+          Import-Module -Name PSSemVer -ErrorAction Stop
 
       - name: Extract Branch Version
         id: extract_version
         shell: pwsh
         run: |
           $branchName = "${{ github.ref_name }}"
+          $rawVersion = $branchName -replace '^release/', ''
           Import-Module -Name PSSemVer -ErrorAction Stop
           try {
-              $rawVersion = $branchName -replace '^release/', ''
               $expectedVersion = [PSSemVer]::Parse($rawVersion)
-
-              Write-Output "expected_version=$expectedVersion" | Out-File -FilePath $GITHUB_OUTPUT -Encoding utf8
-              Write-Host "Expected version for crates: $expectedVersion"
           } catch {
-              Write-Error "Branch name does not contain a valid semantic version. Current branch: $branchName"
+              Write-Error "❌ ERROR: Failed to parse '$rawVersion' as a valid SemVer version."
               exit 1
           }
+          echo "EXPECTED_VERSION=$expectedVersion" >> $env:GITHUB_ENV
 
       - name: Parse and Compare Crate Versions
         shell: pwsh
-        env:
-          EXPECTED_VERSION: ${{ steps.extract_version.outputs.expected_version }}
         run: |
           Import-Module -Name PSSemVer -ErrorAction Stop
           try {
               $expectedSemVer = [PSSemVer]::Parse($env:EXPECTED_VERSION)
           } catch {
-              Write-Error "Expected version '$env:EXPECTED_VERSION' is not a valid semantic version."
+              Write-Error "❌ ERROR: Expected version '$env:EXPECTED_VERSION' is not a valid semantic version."
               exit 1
           }
 
-          # Retrieve package version using cargo pkgid
           $pkgid = cargo pkgid --quiet
-          if ($pkgid -match "#([\d\.]+)") {
+          if ($pkgid -match "#(.+)$") {
               $currentVersion = $matches[1]
           } else {
-              Write-Error "Failed to extract version from cargo pkgid output: $pkgid"
+              Write-Error "❌ ERROR: Failed to extract version from cargo pkgid output: $pkgid"
               exit 1
           }
-
-          Write-Host "Current crate version: $currentVersion"
 
           try {
               $currentSemVer = [PSSemVer]::Parse($currentVersion)
           } catch {
-              Write-Error "Current version '$currentVersion' is not a valid semantic version."
+              Write-Error "❌ ERROR: Current version '$currentVersion' is not a valid semantic version."
               exit 1
           }
 
           if ($currentSemVer.CompareTo($expectedSemVer) -ne 0) {
-              Write-Error "ERROR: Crate version '$currentSemVer' does not match expected '$expectedSemVer'."
+              Write-Error "❌ ERROR: Crate version '$currentSemVer' does not match expected '$expectedSemVer'."
               exit 1
-          } else {
-              Write-Host "Crate version '$currentSemVer' matches the branch version."
           }
 
   publish-dry-run:
@@ -128,12 +118,13 @@ jobs:
 
       - name: Install Rust
         shell: pwsh
-        run: rustup update stable && rustup default stable
+        run: |
+          rustup update stable
+          rustup default stable
 
       - name: Run Tests
         shell: pwsh
         run: |
-          echo "Running tests..."
           cargo test --all-targets
 
       - name: Publish Dry-Run
@@ -141,5 +132,4 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         shell: pwsh
         run: |
-          echo "Running cargo publish dry-run..."
           cargo publish --dry-run
