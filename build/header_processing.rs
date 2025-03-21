@@ -1,3 +1,5 @@
+#[cfg(unix)]
+use std::path::PathBuf;
 use std::{borrow::Cow, collections::HashMap, env, path::Path};
 
 use bindgen::callbacks::{ParseCallbacks, TypeKind};
