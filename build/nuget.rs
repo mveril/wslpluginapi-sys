@@ -2,9 +2,9 @@ extern crate bindgen;
 extern crate semver;
 
 use cfg_if::cfg_if;
-use std::{env, path::PathBuf};
 #[cfg(any(unix, feature = "no-nuget"))]
 use std::fs;
+use std::{env, path::PathBuf};
 
 cfg_if! {
     if #[cfg(feature = "no-nuget")] {
