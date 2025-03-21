@@ -81,10 +81,10 @@ pub(crate) fn process<P: AsRef<Path>, S: AsRef<str>>(
     // Here we use cow to have the same type and avoiding clowning the PathBuff
     cfg_if! {
         if #[cfg(unix)] {
-            let header_file_path = Cow::Owned(preprocess_header(header_file_path)?);
+            let header_file_path: Cow<'_, Path> = Cow::Owned(preprocess_header(header_file_path)?);
         }
         else {
-            let header_file_path = Cow::Borrowed(header_file_path.as_ref());
+            let header_file_path: Cow<'_, Path> = Cow::Borrowed(header_file_path.as_ref());
         }
     }
     let hooks_fields_name_feature = env::var("CARGO_FEATURE_HOOKS_FIELD_NAMES").is_ok();
