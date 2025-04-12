@@ -1,9 +1,6 @@
 extern crate bindgen;
 extern crate semver;
-
 use cfg_if::cfg_if;
-#[cfg(any(unix, feature = "no-nuget"))]
-use std::fs;
 use std::{env, path::PathBuf};
 
 cfg_if! {
@@ -11,6 +8,7 @@ cfg_if! {
         use reqwest::blocking::get;
         use zip::ZipArchive;
         use tempfile::NamedTempFile;
+        use std::fs;
     } else {
         use std::process::Command;
     }
