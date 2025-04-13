@@ -74,7 +74,7 @@ jobs:
               Write-Error "❌ ERROR: Expected version '$env:EXPECTED_VERSION' is not a valid semantic version."
               exit 1
           }
-
+          cargo generate-lockfile
           $pkgid = cargo pkgid --quiet
           if ($pkgid -match "#(.+)$") {
               $currentVersion = $matches[1]
