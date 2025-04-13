@@ -19,8 +19,7 @@
 Before using `wslpluginapi-sys`, ensure you have the following installed:
 
 - **Rust**: Latest stable version.
-- **Windows SDK**: Required for access to necessary headers and libraries.
-- **Nuget**: require nuget cli in the Windows Path.
+- **Nuget**: require nuget cli in the Path or use the `no-nuget` feature to manage the nuget packages via reqwest and zip (useful if nuget is not installed or on non windows environement).
 
 ## Installation
 
