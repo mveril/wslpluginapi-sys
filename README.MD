@@ -27,7 +27,7 @@ Add `wslpluginapi-sys` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-wslpluginapi-sys = "0.1.0-beta.1+2.1.3"
+wslpluginapi-sys = "0.1.0-beta.3+2.1.3"
 ```
 
 Safety
