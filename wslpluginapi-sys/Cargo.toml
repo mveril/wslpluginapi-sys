@@ -1,0 +1,58 @@
+[package]
+name = "wslpluginapi-sys"
+version.workspace = true
+edition.workspace = true
+readme.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+publish-lockfile = false
+repository.workspace = true
+keywords = ["wsl", "plugin", "windows", "linux", "ffi"]
+categories = ["os::windows-apis", "external-ffi-bindings", "virtualization"]
+include = [
+  "Cargo.toml",
+  "src/**",
+  "build/**",
+  "README.md",
+  "LICENSE",
+  "vendored/**",
+]
+build = "build/main.rs"
+
+[features]
+# Enables all features that modify the library's behavior at runtime.
+# Unlike build-related features, this impacts the API's functionalities.
+hooks-field-names = ["dep:struct-field-names-as-array"]
+
+[build-dependencies]
+tempfile = { version = "3.16", optional = true }
+bindgen = "0.71"
+cfg-if = "1.0"
+constcat = "0.6.0"
+
+
+[dependencies]
+libc = "0.2"
+struct-field-names-as-array = { version = "0.3", features = [
+  "derive",
+], optional = true }
+
+[dependencies.windows]
+version = ">0.32"
+features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_System_Diagnostics_Debug",
+  "Win32_Networking_WinSock",
+]
+
+[package.metadata.docs.rs]
+all-features = true
+targets = [
+  "x86_64-pc-windows-msvc",
+  "x86_64-pc-windows-gnu",
+  "x86_64-pc-windows-gnullvm",
+  "aarch64-pc-windows-msvc",
+  "aarch64-pc-windows-gnullvm",
+]

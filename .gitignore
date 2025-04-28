@@ -1,3 +1,4 @@
 /target
 /nuget_packages/*
+vendored/
 Cargo.lock
