@@ -25,13 +25,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Build the project
-    Build,
-    /// Run tests
-    Test,
-    /// Format the code
-    Fmt,
-    /// Run a custom command
     Nuget,
 }
 
