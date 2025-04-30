@@ -1,3 +1,4 @@
+use anyhow::Result;
 use reqwest::blocking::get;
 use std::fs;
 use std::path::Path;
@@ -14,7 +15,6 @@ pub(crate) enum Mode {
     NoNuget,
     Nuget,
 }
-
 
 const LOCAL_NUGET_FOLDER: &str = "nuget_packages";
 
@@ -33,7 +33,7 @@ pub(crate) fn ensure_package_installed<P: AsRef<Path>, S: AsRef<str>>(
     package_version: S,
     out_dir: P,
     mode: Mode,
-) -> Result<PathBuf, Box<dyn std::error::Error>> {
+) -> Result<PathBuf> {
     let out_dir = out_dir.as_ref();
     let package_name = package_name.as_ref();
     let package_version = package_version.as_ref();
@@ -64,7 +64,7 @@ fn install_with_nuget_cli(
     package_name: &str,
     package_version: &str,
     package_dir: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     println!("Installing NuGet package using NuGet CLI...");
     let status = Command::new("nuget")
         .args([
@@ -73,21 +73,10 @@ fn install_with_nuget_cli(
             "-Version",
             package_version,
             "-OutputDirectory",
-            package_dir
-                .to_str()
-                .ok_or("Invalid package directory path")?,
+            package_dir.to_str().unwrap(),
             "-NonInteractive",
         ])
         .status()?;
-
-    if !status.success() {
-        return Err(format!(
-            "NuGet install command failed with status: {:?}",
-            status.code()
-        )
-        .into());
-    }
-
     Ok(())
 }
 
@@ -95,21 +84,14 @@ fn download_and_extract(
     package_name: &str,
     package_version: &str,
     package_output: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     let package_url = format!(
         "https://www.nuget.org/api/v2/package/{}/{}",
         package_name, package_version
     );
     println!("Downloading NuGet package from: {}", package_url);
 
-    let mut response = get(&package_url)?;
-    if !response.status().is_success() {
-        return Err(format!(
-            "Failed to download NuGet package: HTTP {}",
-            response.status()
-        )
-        .into());
-    }
+    let mut response = get(&package_url)?.error_for_status()?;
 
     let mut temp_file = NamedTempFile::new()?;
     response.copy_to(&mut temp_file)?;

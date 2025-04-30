@@ -10,14 +10,6 @@ publish-lockfile = false
 repository.workspace = true
 keywords = ["wsl", "plugin", "windows", "linux", "ffi"]
 categories = ["os::windows-apis", "external-ffi-bindings", "virtualization"]
-include = [
-  "Cargo.toml",
-  "src/**",
-  "build/**",
-  "README.md",
-  "LICENSE",
-  "vendored/**",
-]
 build = "build/main.rs"
 
 [features]
