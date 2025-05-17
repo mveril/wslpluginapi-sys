@@ -1,11 +1,15 @@
-use chrono::prelude::*;
-use log::debug;
+use crate::licence_definition::LicenseDefinition;
+use anyhow::{Ok, Result};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use spdx::{Expression, text};
-use std::collections::HashSet;
+use serde_xml_rs;
+use spdx::Expression;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
+use zip;
+
+static YEAR_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<year>\s*").unwrap());
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "package")]
@@ -13,57 +17,60 @@ pub struct Package {
     #[serde(rename = "metadata")]
     pub metadata: Metadata,
 }
+pub enum LicenceContent {
+    Body(LicenceBody),
+    URL(String),
+}
+
+impl From<LicenceBody> for LicenceContent {
+    fn from(body: LicenceBody) -> Self {
+        LicenceContent::Body(body)
+    }
+}
+
+pub enum LicenceBody {
+    Generator(LicenseDefinition),
+    File(String),
+}
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename = "metadata")]
+#[serde(rename_all = "camelCase")]
 pub struct Metadata {
-    #[serde(rename = "id")]
     pub id: String,
-    #[serde(rename = "version")]
     pub version: String,
-    #[serde(rename = "authors")]
     pub authors: String,
-    #[serde(rename = "owners")]
     #[serde(default)]
     pub owners: Option<String>,
     #[serde(default)]
+    pub readme: Option<PathBuf>,
+    #[serde(default)]
     pub copyright: Option<String>,
-    #[serde(rename = "description")]
     pub description: String,
-    #[serde(rename = "releaseNotes")]
     #[serde(default)]
     pub release_notes: Option<String>,
-    #[serde(rename = "tags")]
     #[serde(default)]
     pub tags: Option<String>,
-    #[serde(rename = "projectUrl")]
     #[serde(default)]
     pub project_url: Option<String>,
-    #[serde(rename = "licenseUrl")]
     #[serde(default)]
     pub license_url: Option<String>,
-    #[serde(rename = "license")]
     #[serde(default)]
     pub license: Option<License>,
-    #[serde(rename = "requireLicenseAcceptance")]
     #[serde(default)]
     pub require_license_acceptance: Option<bool>,
-    #[serde(rename = "dependencies")]
     #[serde(default)]
     pub dependencies: Option<Dependencies>,
 }
 
 impl Metadata {
-    pub fn get_year(&self) -> Option<i32> {
+    pub fn get_year(&self) -> Option<u16> {
         let re = Regex::new(r"\d{4}").unwrap();
         self.copyright
             .as_deref()
-            .map(|copyright| {
-                re.captures(&copyright)
-                    .map(|year| year[0].parse::<i32>().unwrap())
-            })
+            .map(|copyright| re.captures(&copyright).map(|year| year[0].parse().unwrap()))
             .flatten()
     }
+
     pub fn get_holders(&self) -> &str {
         if let Some(owners) = &self.owners {
             owners
@@ -72,15 +79,17 @@ impl Metadata {
         }
     }
 
-    pub fn get_licence_texts(&self) -> Vec<String> {
+    pub fn get_licence_content(&self) -> Result<Option<LicenceContent>> {
         let year = self.get_year();
         let holders = self.get_holders();
         if let Some(license) = &self.license {
-            license.get_text(year, &holders)
+            Ok(Some(LicenceContent::Body(
+                license.get_body(year, &holders)?,
+            )))
         } else if let Some(license_url) = &self.license_url {
-            vec![format!("See {}", license_url)]
+            Ok(Some(LicenceContent::URL(license_url.clone())))
         } else {
-            vec![]
+            Ok(None)
         }
     }
 }
@@ -117,35 +126,19 @@ impl License {
         }
     }
 
-    pub fn get_text(&self, year: Option<i32>, holders: &str) -> Vec<String> {
-        match self.kind {
+    pub fn get_body(&self, year: Option<u16>, holders: &str) -> Result<LicenceBody> {
+        let result = match self.kind {
             LicenseType::File => {
                 let path = Path::new(&self.value);
-                vec![fs::read_to_string(path).expect("Failed to read license file")]
+                LicenceBody::File(fs::read_to_string(path)?)
             }
-            LicenseType::Expression => {
-                let licence_expr =
-                    Expression::parse(&self.value).expect("Failed to parse license expression");
-
-                let year_regex = Regex::new(r"<year>\s*").unwrap();
-
-                licence_expr
-                    .requirements()
-                    .flat_map(|req| req.req.license.id())
-                    .map(|id| {
-                        let raw_text = id.text();
-                        let text_with_holders = raw_text.replace("<copyright holders>", holders);
-                        let text = if let Some(year) = year {
-                            text_with_holders.replace("<year>", &year.to_string())
-                        } else {
-                            let without_year = year_regex.replace_all(&raw_text, "");
-                            without_year.replace("<copyright holders>", holders)
-                        };
-                        text
-                    })
-                    .collect()
-            }
-        }
+            LicenseType::Expression => LicenceBody::Generator(LicenseDefinition::new(
+                Expression::parse(&self.value)?,
+                year,
+                holders,
+            )),
+        };
+        Ok(result)
     }
 }
 
