@@ -177,20 +177,27 @@ fn copy_native_headers(
 ) -> Result<Vec<DistributedFile>> {
     debug!("Copying native headers...");
     let native_include_path = nuget_pkg_path.join("build/native/include/");
+    let third_party_include_path = third_party_wsl_nuget_dir.join("include");
     let mut vec = Vec::default();
     for entry in fs::read_dir(&native_include_path)? {
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
             debug!("Copying directory: {}", path.display());
-            fs::create_dir_all(third_party_wsl_nuget_dir.join(path.file_name().unwrap()))?;
+            fs::create_dir_all(
+                third_party_include_path
+                    .join("path")
+                    .join(path.file_name().unwrap()),
+            )?;
         } else {
             debug!("Copying file: {}", path.display());
+            fs::create_dir_all(&third_party_include_path)?;
             fs::copy(
                 &path,
-                third_party_wsl_nuget_dir.join(path.file_name().unwrap()),
+                third_party_include_path.join(path.file_name().unwrap()),
             )?;
             let distributed_file = DistributedFile::new(path, Status::Unmodified);
+            vec.push(distributed_file);
         }
     }
     vec.shrink_to_fit();
