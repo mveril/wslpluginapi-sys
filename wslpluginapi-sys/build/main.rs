@@ -15,8 +15,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let manifest_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set"));
-    let header_file_path =
-        manifest_dir.join(format!("vendored/include/{}", WSL_PLUGIN_API_HEADER_FILE));
+    let header_file_path = manifest_dir.join(format!(
+        "third_party/Microsoft.WSL.PluginApi/include/{}",
+        WSL_PLUGIN_API_HEADER_FILE
+    ));
 
     if !header_file_path.exists() {
         return Err(format!("Header file does not exist: {:?}", header_file_path).into());
