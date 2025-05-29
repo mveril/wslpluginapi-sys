@@ -56,14 +56,14 @@ jobs:
 
       - name: Lint with Clippy (Stable Only)
         if: matrix.toolchain == 'stable'
-        run: cargo clippy --all-targets --features="runtime-features"
+        run: cargo clippy --all-targets --all-features
 
       - name: Check Code Formatting (Stable Only)
         if: matrix.toolchain == 'stable'
         run: cargo fmt -- --check
 
       - name: Build the Project with nuget
-        run: cargo build --features="runtime-features" --verbose
+        run: cargo build --all-features --verbose
 
       - name: Build the Project without nuget
         run: cargo build --all-features --verbose
@@ -120,7 +120,7 @@ jobs:
           echo "CARGO_TARGET_${var_name}_AR=${{ matrix.target.ar }}" >> $GITHUB_ENV
 
       - name: Build Project for target ${{ matrix.target.triple }}
-        run: cargo build --target=${{ matrix.target.triple }} --features=no-nuget --release
+        run: cargo build --target=${{ matrix.target.triple }} --all-features --release
 
       - name: Run doc
         run: cargo doc --target=${{ matrix.target.triple }} --no-deps --all-features
