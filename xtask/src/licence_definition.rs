@@ -1,14 +1,14 @@
 use regex::Regex;
 use spdx::Expression;
-use std::borrow::Cow;
 use std::sync::LazyLock;
 
 static YEAR_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<year>\s*").unwrap());
 
+#[derive(Debug, Clone)]
 pub struct LicenseDefinition {
-    license: Expression,
-    year: Option<u16>,
-    holders: String,
+    pub license: Expression,
+    pub year: Option<u16>,
+    pub holders: String,
 }
 
 impl LicenseDefinition {

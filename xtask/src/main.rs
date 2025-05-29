@@ -1,20 +1,20 @@
 mod licence_definition;
 mod nuget;
 mod nuspec;
+mod third_pary_mangement;
 
 use anyhow::Result;
 use nuspec::LicenceContent;
-use std::{
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
+use std::{fs, io::Write, iter::once, path::Path};
+use third_pary_mangement::{
+    DistributedFile, Status,
+    notice::{NoticeGeneration, ThirdPartyNotice, ThirdPartyNoticeItem, ThirdPartyNoticePackage},
 };
 
 use crate::nuget::{Mode, ensure_package_installed};
 use clap::{Parser, Subcommand, builder::OsStr};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use env_logger;
-use fs_extra::dir::{CopyOptions, copy};
 use log::{debug, error, info, trace, warn};
 use reqwest::blocking::get;
 use zip::ZipArchive;
@@ -48,16 +48,20 @@ fn main() -> Result<()> {
             let metadata = fetch_cargo_metadata()?;
 
             let workspace_root: &Path = &metadata.workspace_root.as_ref();
-
+            let mut notice = ThirdPartyNotice::default();
             for package in metadata.workspace_packages() {
-                if let Some(parent) = package.manifest_path.parent() {
-                    if parent.as_str() != env!("CARGO_MANIFEST_DIR") {
-                        process_package(package, workspace_root)?;
-                    }
+                let notice = if package
+                    .manifest_path
+                    .parent()
+                    .map_or(true, |p| p.as_str() != env!("CARGO_MANIFEST_DIR"))
+                {
+                    notice.push(process_package(package, workspace_root)?);
                 } else {
-                    process_package(package, workspace_root)?;
-                }
+                    info!("Skipping package: {}", package.name);
+                    continue;
+                };
             }
+            notice.generate_notice(&workspace_root.join("THIRD-PARTY-NOTICES.md"))?;
             Ok(())
         }
     }
@@ -70,7 +74,10 @@ fn fetch_cargo_metadata() -> Result<cargo_metadata::Metadata> {
     Ok(metadata)
 }
 
-fn process_package(package: &cargo_metadata::Package, workspace_root: &Path) -> Result<()> {
+fn process_package(
+    package: &cargo_metadata::Package,
+    workspace_root: &Path,
+) -> Result<ThirdPartyNoticePackage> {
     debug!("Processing package: {}", package.name);
 
     let version = &package.version;
@@ -79,10 +86,9 @@ fn process_package(package: &cargo_metadata::Package, workspace_root: &Path) -> 
         "Package '{}' build metadata version: {:?}",
         package.name, nuget_package_version
     );
-
     if nuget_package_version.is_empty() {
         warn!("No version found for package: {}", package.name);
-        return Ok(());
+        return Ok(ThirdPartyNoticePackage::new(package.name.clone()));
     }
 
     let nuget_package_name = "Microsoft.WSL.PluginApi";
@@ -105,16 +111,47 @@ fn process_package(package: &cargo_metadata::Package, workspace_root: &Path) -> 
         &third_party_dir.as_std_path(),
         &third_party_wsl_nuget_dir.as_std_path(),
     )?;
-    copy_native_headers(&nuget_pkg_path, &third_party_wsl_nuget_dir.as_std_path())?;
-
-    handle_nuspec_and_licenses(
+    let nuspec_data = get_nuspec_from_nupkg(
         &nuget_pkg_path,
         nuget_package_name,
         nuget_package_version.as_str(),
-        &third_party_wsl_nuget_dir.as_std_path(),
+    )?
+    .unwrap();
+    let licence: Option<LicenceContent> = nuspec_data.metadata.get_licence_content()?;
+    let mut notice_item = ThirdPartyNoticeItem::new(
+        nuget_package_name.into(),
+        nuspec_data.metadata.version.clone(),
+        format!(
+            "https://www.nuget.org/packages/{}/{}",
+            nuspec_data.metadata.id, nuspec_data.metadata.version,
+        ),
+        nuspec_data.metadata.copyright.clone(),
+        licence,
+    );
+    let headers = copy_native_headers(&nuget_pkg_path, &third_party_wsl_nuget_dir.as_std_path())?;
+    notice_item.files_mut().extend(headers);
+    let readme: Option<DistributedFile> = handle_readme(
+        &nuspec_data,
+        nuget_pkg_path.as_ref(),
+        third_party_wsl_nuget_dir.as_ref(),
     )?;
-
-    Ok(())
+    notice_item.files_mut().extend(readme.into_iter());
+    let licenses = handle_license(
+        &nuspec_data,
+        nuget_pkg_path.as_ref(),
+        third_party_wsl_nuget_dir.as_ref(),
+    )?;
+    notice_item.files_mut().extend(licenses.into_iter());
+    let mut notice = ThirdPartyNoticePackage::new(package.name.clone());
+    notice.push(notice_item);
+    notice.generate_notice(
+        &package
+            .manifest_path
+            .parent()
+            .unwrap()
+            .join("THIRD-PARTY-NOTICES.md"),
+    )?;
+    Ok(notice)
 }
 
 fn prepare_third_party_dirs(
@@ -134,22 +171,37 @@ fn prepare_third_party_dirs(
     Ok(())
 }
 
-fn copy_native_headers(nuget_pkg_path: &Path, third_party_wsl_nuget_dir: &Path) -> Result<()> {
+fn copy_native_headers(
+    nuget_pkg_path: &Path,
+    third_party_wsl_nuget_dir: &Path,
+) -> Result<Vec<DistributedFile>> {
     debug!("Copying native headers...");
-    copy(
-        nuget_pkg_path.join("build/native/include/"),
-        third_party_wsl_nuget_dir,
-        &CopyOptions::new().overwrite(true),
-    )?;
-    Ok(())
+    let native_include_path = nuget_pkg_path.join("build/native/include/");
+    let mut vec = Vec::default();
+    for entry in fs::read_dir(&native_include_path)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            debug!("Copying directory: {}", path.display());
+            fs::create_dir_all(third_party_wsl_nuget_dir.join(path.file_name().unwrap()))?;
+        } else {
+            debug!("Copying file: {}", path.display());
+            fs::copy(
+                &path,
+                third_party_wsl_nuget_dir.join(path.file_name().unwrap()),
+            )?;
+            let distributed_file = DistributedFile::new(path, Status::Unmodified);
+        }
+    }
+    vec.shrink_to_fit();
+    Ok(vec)
 }
 
-fn handle_nuspec_and_licenses(
+fn get_nuspec_from_nupkg(
     nuget_pkg_path: &Path,
     nuget_package_name: &str,
     nuget_package_version: &str,
-    third_party_wsl_nuget_dir: &Path,
-) -> Result<()> {
+) -> Result<Option<nuspec::Package>> {
     let nuspec_name = format!("{}.nuspec", nuget_package_name);
     debug!("Looking for nuspec file: {}", nuspec_name);
 
@@ -159,13 +211,12 @@ fn handle_nuspec_and_licenses(
     )))?;
     let mut archive = ZipArchive::new(zip_file)?;
     trace!("ZIP archive opened with {} files", archive.len());
-
     match archive.by_name(&nuspec_name) {
         Ok(nuspec_file) => {
             debug!("Found .nuspec file: {}", nuspec_name);
             let package_data: nuspec::Package = serde_xml_rs::from_reader(nuspec_file)?;
             trace!("Parsed nuspec data: {:#?}", package_data);
-            handle_readme_and_license(&package_data, nuget_pkg_path, third_party_wsl_nuget_dir)?;
+            Ok(Some(package_data))
         }
         Err(_) => {
             warn!(
@@ -173,16 +224,16 @@ fn handle_nuspec_and_licenses(
                 nuspec_name,
                 nuget_pkg_path.display()
             );
+            Ok(None)
         }
     }
-    Ok(())
 }
 
-fn handle_readme_and_license(
+fn handle_readme(
     package_data: &nuspec::Package,
     nuget_pkg_path: &Path,
     third_party_wsl_nuget_dir: &Path,
-) -> Result<()> {
+) -> Result<Option<DistributedFile>> {
     if let Some(readme_nuget_path) = package_data.metadata.readme.as_deref() {
         let readme_path = third_party_wsl_nuget_dir.join(
             &readme_nuget_path
@@ -190,11 +241,21 @@ fn handle_readme_and_license(
                 .unwrap_or(&OsStr::from("README")),
         );
         debug!("Copying README file to: {}", readme_path.display());
-        fs::copy(nuget_pkg_path.join(readme_nuget_path), readme_path)?;
+        fs::copy(nuget_pkg_path.join(readme_nuget_path), &readme_path)?;
+        return Ok(Some(DistributedFile::new(readme_path, Status::Unmodified)));
     } else {
         info!("No README file specified in nuspec.");
     }
-    if let Some(licence_content) = package_data.metadata.get_licence_content()? {
+    Ok(None)
+}
+
+fn handle_license(
+    package_data: &nuspec::Package,
+    nuget_pkg_path: &Path,
+    third_party_wsl_nuget_dir: &Path,
+) -> Result<Option<DistributedFile>> {
+    let some_licence_content = package_data.metadata.get_licence_content()?;
+    if let Some(licence_content) = some_licence_content {
         match licence_content {
             LicenceContent::Body(body) => {
                 debug!("License file or expression found in nuspec.");
@@ -210,19 +271,27 @@ fn handle_readme_and_license(
                         debug!("Writing license to: {}", &license_path.display());
                         fs::File::create(&license_path)?
                             .write_all(license_body.join("\n\n").as_bytes())?;
+                        Ok(Some(DistributedFile::new(
+                            license_path,
+                            Status::PackageMetadataGenerated,
+                        )))
                     }
                     nuspec::LicenceBody::File(file) => {
                         debug!("License file found in nuspec.");
                         let license_path = third_party_wsl_nuget_dir.join("LICENSE");
                         debug!("Copy license to: {}", &license_path.display());
-                        fs::copy(nuget_pkg_path.join(file), license_path)?;
+                        fs::copy(nuget_pkg_path.join(file), &license_path)?;
+                        Ok(Some(DistributedFile::new(license_path, Status::Unmodified)))
                     }
                 }
             }
             LicenceContent::URL(url) => {
                 debug!("License URL found in nuspec: {}", url);
+                Ok(None)
             }
         }
+    } else {
+        debug!("No license file or expression specified in nuspec.");
+        Ok(None)
     }
-    Ok(())
 }

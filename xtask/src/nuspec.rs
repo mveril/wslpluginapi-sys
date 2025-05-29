@@ -4,9 +4,9 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_xml_rs;
 use spdx::Expression;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
+use std::{clone, fs};
 use zip;
 
 static YEAR_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<year>\s*").unwrap());
@@ -17,6 +17,7 @@ pub struct Package {
     #[serde(rename = "metadata")]
     pub metadata: Metadata,
 }
+#[derive(Debug, Clone)]
 pub enum LicenceContent {
     Body(LicenceBody),
     URL(String),
@@ -28,6 +29,7 @@ impl From<LicenceBody> for LicenceContent {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum LicenceBody {
     Generator(LicenseDefinition),
     File(String),
@@ -82,15 +84,13 @@ impl Metadata {
     pub fn get_licence_content(&self) -> Result<Option<LicenceContent>> {
         let year = self.get_year();
         let holders = self.get_holders();
-        if let Some(license) = &self.license {
-            Ok(Some(LicenceContent::Body(
-                license.get_body(year, &holders)?,
-            )))
+        Ok(if let Some(license) = &self.license {
+            Some(LicenceContent::Body(license.get_body(year, &holders)?))
         } else if let Some(license_url) = &self.license_url {
-            Ok(Some(LicenceContent::URL(license_url.clone())))
+            Some(LicenceContent::URL(license_url.clone()))
         } else {
-            Ok(None)
-        }
+            None
+        })
     }
 }
 
