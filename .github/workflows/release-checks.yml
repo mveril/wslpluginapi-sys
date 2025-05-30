@@ -75,7 +75,7 @@ jobs:
               exit 1
           }
           cargo generate-lockfile
-          $pkgid = cargo pkgid --quiet
+          $pkgid = cargo pkgid -p wslpluginapi-sys --quiet
           if ($pkgid -match "#(.+)$") {
               $currentVersion = $matches[1]
           } else {
@@ -125,11 +125,11 @@ jobs:
       - name: Run Tests
         shell: pwsh
         run: |
-          cargo test --all-targets
+          cargo test -p wslpluginapi-sys --all-targets
 
       - name: Publish Dry-Run
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         shell: pwsh
         run: |
-          cargo publish --dry-run
+          cargo publish -p wslpluginapi-sys --dry-run
