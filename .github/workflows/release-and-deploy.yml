@@ -148,7 +148,7 @@ jobs:
         continue-on-error: false
 
       - name: Run Cargo Publish in Dry-Run Mode
-        run: cargo publish --dry-run
+        run: cargo publish -p wslpluginapi-sys--dry-run
 
       - name: Create GitHub Release
         id: release
@@ -163,6 +163,6 @@ jobs:
           prerelease: ${{ env.prerelease == 'true' }}
 
       - name: Cargo Publish on crates.io
-        run: cargo publish
+        run: cargo -p wslpluginapi-sys publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
