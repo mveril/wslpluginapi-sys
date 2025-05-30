@@ -45,4 +45,4 @@ This project depends on a third-party dependency called [Microsoft.WSL.PluginApi
 
 This project is licensed under the MIT License. See the LICENSE file for details.
 
-Note: This crate is part of the [WSLPlugin-rs](https://github.com/mveril/wslpluginapi-sys) project, which aims to create an idiomatic Rust framework for developing WSL plugins.
+Note: This crate is part of the [WSLPlugins-rs](https://github.com/mveril/wslplugins-rs) project, which aims to create an idiomatic Rust framework for developing WSL plugins.
