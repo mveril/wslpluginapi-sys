@@ -1,10 +1,8 @@
 use chrono::format;
-use markdown_builder::{BlockQuote, Bold, Inline, Link, LinkBuilder, List};
+use log::debug;
+use markdown_builder::{BlockQuote, Bold, Inline, Link, List};
 
-use crate::{
-    nuspec::LicenceContent,
-    third_pary_mangement::distributed_file::{DistributedFile, Status},
-};
+use crate::{nuspec::LicenceContent, third_pary_mangement::distributed_file::DistributedFile};
 use std::{borrow::Cow, path::Path};
 
 use super::notice_generation::NoticeGeneration;
@@ -69,6 +67,7 @@ impl NoticeGeneration for ThirdPartyNoticeItem {
             .files()
             .iter()
             .fold(List::builder(), |builder, file| {
+                debug!("Adding file to list: {:?}", &file.path);
                 builder.append(format!(
                     "{} {}",
                     file.path

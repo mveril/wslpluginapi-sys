@@ -2,14 +2,9 @@ use crate::licence_definition::LicenseDefinition;
 use anyhow::{Ok, Result};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_xml_rs;
 use spdx::Expression;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::LazyLock;
-use std::{clone, fs};
-use zip;
-
-static YEAR_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<year>\s*").unwrap());
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "package")]
@@ -110,22 +105,6 @@ pub struct License {
 }
 
 impl License {
-    pub fn expression(&self) -> Option<Expression> {
-        if self.kind == LicenseType::Expression {
-            Expression::parse(&self.value).ok()
-        } else {
-            None
-        }
-    }
-
-    pub fn file(&self) -> Option<String> {
-        if self.kind == LicenseType::File {
-            Some(self.value.clone())
-        } else {
-            None
-        }
-    }
-
     pub fn get_body(&self, year: Option<u16>, holders: &str) -> Result<LicenceBody> {
         let result = match self.kind {
             LicenseType::File => {

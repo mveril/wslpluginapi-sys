@@ -1,6 +1,6 @@
-use std::{borrow::Cow, fs, path::Path};
+use std::path::Path;
 
-use super::{ThirdPartyNoticeItem, ThirdPartyNoticePackage, notice_generation::NoticeGeneration};
+use super::{ThirdPartyNoticePackage, notice_generation::NoticeGeneration};
 
 #[derive(Debug, Clone, Default)]
 pub struct ThirdPartyNotice {

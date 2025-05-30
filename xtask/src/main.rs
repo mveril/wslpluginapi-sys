@@ -5,18 +5,18 @@ mod third_pary_mangement;
 
 use anyhow::Result;
 use nuspec::LicenceContent;
-use std::{fs, io::Write, iter::once, path::Path};
+use std::{fs, io::Write, path::Path};
 use third_pary_mangement::{
     DistributedFile, Status,
     notice::{NoticeGeneration, ThirdPartyNotice, ThirdPartyNoticeItem, ThirdPartyNoticePackage},
 };
+use walkdir::WalkDir;
 
 use crate::nuget::{Mode, ensure_package_installed};
 use clap::{Parser, Subcommand, builder::OsStr};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use env_logger;
 use log::{debug, error, info, trace, warn};
-use reqwest::blocking::get;
 use zip::ZipArchive;
 
 /// Tâches de build et développement personnalisées pour le projet.
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
             let workspace_root: &Path = &metadata.workspace_root.as_ref();
             let mut notice = ThirdPartyNotice::default();
             for package in metadata.workspace_packages() {
-                let notice = if package
+                if package
                     .manifest_path
                     .parent()
                     .map_or(true, |p| p.as_str() != env!("CARGO_MANIFEST_DIR"))
@@ -173,35 +173,28 @@ fn prepare_third_party_dirs(
 
 fn copy_native_headers(
     nuget_pkg_path: &Path,
-    third_party_wsl_nuget_dir: &Path,
-) -> Result<Vec<DistributedFile>> {
+    third_party_nuget_package_dir: &Path,
+) -> Result<Box<[DistributedFile]>> {
     debug!("Copying native headers...");
-    let native_include_path = nuget_pkg_path.join("build/native/include/");
-    let third_party_include_path = third_party_wsl_nuget_dir.join("include");
-    let mut vec = Vec::default();
-    for entry in fs::read_dir(&native_include_path)? {
+    let nuget_native_path = nuget_pkg_path.join("build/native");
+    let mut vec = Vec::with_capacity(1);
+    for entry in WalkDir::new(&nuget_native_path) {
         let entry = entry?;
         let path = entry.path();
+        let result_path =
+            third_party_nuget_package_dir.join(path.strip_prefix(&nuget_native_path).unwrap());
         if path.is_dir() {
             debug!("Copying directory: {}", path.display());
-            fs::create_dir_all(
-                third_party_include_path
-                    .join("path")
-                    .join(path.file_name().unwrap()),
-            )?;
+            fs::create_dir_all(&result_path)?;
         } else {
             debug!("Copying file: {}", path.display());
-            fs::create_dir_all(&third_party_include_path)?;
-            fs::copy(
-                &path,
-                third_party_include_path.join(path.file_name().unwrap()),
-            )?;
-            let distributed_file = DistributedFile::new(path, Status::Unmodified);
+            fs::create_dir_all(&result_path.parent().unwrap())?;
+            fs::copy(&path, &result_path)?;
+            let distributed_file = DistributedFile::new(result_path, Status::Unmodified);
             vec.push(distributed_file);
         }
     }
-    vec.shrink_to_fit();
-    Ok(vec)
+    Ok(vec.into_boxed_slice())
 }
 
 fn get_nuspec_from_nupkg(

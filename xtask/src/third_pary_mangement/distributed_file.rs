@@ -24,7 +24,7 @@ impl Display for Status {
         let output = match self {
             Status::Modified => "modified",
             Status::Unmodified => "unmodified",
-            Status::PackageMetadataGenerated => "Generated from package metadata",
+            Status::PackageMetadataGenerated => "generated from package metadata",
         };
         f.write_str(output)
     }

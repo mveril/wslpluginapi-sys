@@ -4,6 +4,7 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use std::process::ExitStatus;
 use tempfile::NamedTempFile;
 use zip::ZipArchive;
 
@@ -64,7 +65,7 @@ fn install_with_nuget_cli(
     package_name: &str,
     package_version: &str,
     package_dir: &Path,
-) -> Result<()> {
+) -> Result<ExitStatus> {
     println!("Installing NuGet package using NuGet CLI...");
     let status = Command::new("nuget")
         .args([
@@ -77,7 +78,7 @@ fn install_with_nuget_cli(
             "-NonInteractive",
         ])
         .status()?;
-    Ok(())
+    Ok(status)
 }
 
 fn download_and_extract(
