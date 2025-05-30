@@ -62,10 +62,7 @@ jobs:
         if: matrix.toolchain == 'stable'
         run: cargo fmt -- --check
 
-      - name: Build the Project with nuget
-        run: cargo build --all-features --verbose
-
-      - name: Build the Project without nuget
+      - name: Build the Project
         run: cargo build --all-features --verbose
 
       - name: Run Tests
