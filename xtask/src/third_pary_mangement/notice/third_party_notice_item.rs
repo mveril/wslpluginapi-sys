@@ -1,4 +1,3 @@
-use chrono::format;
 use log::debug;
 use markdown_builder::{BlockQuote, Bold, Inline, Link, List};
 

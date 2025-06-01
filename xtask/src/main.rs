@@ -16,7 +16,7 @@ use crate::nuget::{Mode, ensure_package_installed};
 use clap::{Parser, Subcommand, builder::OsStr};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use env_logger;
-use log::{debug, error, info, trace, warn};
+use log::{debug, info, trace, warn};
 use zip::ZipArchive;
 
 /// Tâches de build et développement personnalisées pour le projet.
@@ -88,7 +88,7 @@ fn process_package(
     );
     if nuget_package_version.is_empty() {
         warn!("No version found for package: {}", package.name);
-        return Ok(ThirdPartyNoticePackage::new(package.name.clone()));
+        return Ok(ThirdPartyNoticePackage::new(package.name.to_string()));
     }
 
     let nuget_package_name = "Microsoft.WSL.PluginApi";
@@ -142,7 +142,7 @@ fn process_package(
         third_party_wsl_nuget_dir.as_ref(),
     )?;
     notice_item.files_mut().extend(licenses.into_iter());
-    let mut notice = ThirdPartyNoticePackage::new(package.name.clone());
+    let mut notice = ThirdPartyNoticePackage::new(package.name.to_string());
     notice.push(notice_item);
     notice.generate_notice(
         &package

@@ -44,8 +44,12 @@ pub(crate) fn ensure_package_installed<P: AsRef<Path>, S: AsRef<str>>(
     fs::create_dir_all(&package_dir)?;
 
     match mode {
-        Mode::Nuget => install_with_nuget_cli(package_name, package_version, &package_dir)?,
-        Mode::NoNuget => download_and_extract(package_name, package_version, &package_output)?,
+        Mode::Nuget => {
+            install_with_nuget_cli(package_name, package_version, &package_dir)?;
+        }
+        Mode::NoNuget => {
+            download_and_extract(package_name, package_version, &package_output)?;
+        }
         Mode::TryNuget => {
             if let Err(e) = install_with_nuget_cli(package_name, package_version, &package_dir) {
                 println!(
