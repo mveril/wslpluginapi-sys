@@ -47,7 +47,7 @@ fn rust_to_llvm_target() -> HashMap<&'static str, &'static str> {
         ("aarch64-pc-windows-gnu", "aarch64-w64-mingw32"),
         ("x86_64-pc-windows-gnullvm", "x86_64-w64-mingw32"),
         ("i686-pc-windows-gnullvm", "i686-w64-mingw32"),
-        ("aarch64-pc-windows-gnullvm ", "aarch64-w64-mingw32"),
+        ("aarch64-pc-windows-gnullvm", "aarch64-w64-mingw32"),
         ("x86_64-pc-windows-msvc", "x86_64-windows-msvc"),
         ("i686-pc-windows-msvc", "i686-windows-msvc"),
         ("aarch64-pc-windows-msvc", "aarch64-windows-msvc"),
@@ -80,7 +80,7 @@ pub(crate) fn process<P: AsRef<Path>, S: AsRef<str>>(
 ) -> Result<bindgen::Bindings, Box<dyn std::error::Error>> {
     let host = host.as_ref();
     let target = target.as_ref();
-    // Here we use cow to have the same type and avoiding clowning the PathBuff
+    // Use a `Cow` to keep the same type without cloning the PathBuf
     cfg_if! {
         if #[cfg(unix)] {
             let header_file_path: Cow<'_, Path> = Cow::Owned(preprocess_header(header_file_path)?);
