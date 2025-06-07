@@ -4,10 +4,12 @@ mod nuspec;
 mod third_pary_management;
 
 use anyhow::Result;
+use cargo_metadata::Package;
 use nuspec::LicenceContent;
 use std::{
     fs,
-    io::{BufReader, Write},
+    io::{self, BufReader, Write},
+    iter::once,
     path::Path,
 };
 use third_pary_management::{
@@ -50,7 +52,7 @@ fn main() -> Result<()> {
         Commands::Nuget => {
             info!("Running Nuget command...");
             let metadata = fetch_cargo_metadata()?;
-
+            cleanup(&metadata)?;
             let workspace_root: &Path = &metadata.workspace_root.as_ref();
             let mut notice = ThirdPartyNotice::default();
             for package in metadata.workspace_packages() {
@@ -166,12 +168,78 @@ fn prepare_third_party_dirs(
         "Creating third_party directory at: {}",
         third_party_dir.display()
     );
+    if third_party_dir.exists() {
+        debug!(
+            "Removing existing third_party directory: {}",
+            third_party_dir.display()
+        );
+        fs::remove_dir_all(third_party_dir)?;
+    }
     fs::create_dir_all(third_party_dir)?;
     debug!(
         "Creating third_party directory for the package at: {}",
         third_party_wsl_nuget_dir.display()
     );
     fs::create_dir_all(third_party_wsl_nuget_dir)?;
+    Ok(())
+}
+
+fn cleanup(metadata: &cargo_metadata::Metadata) -> io::Result<()> {
+    remove_third_party_notice(&metadata)?;
+    remove_third_party_dir(metadata.workspace_packages().iter())?;
+    Ok(())
+}
+
+fn remove_third_party_dir<'a, I: IntoIterator<Item = &'a &'a Package>>(
+    packages: I,
+) -> io::Result<()> {
+    for package_path in packages
+        .into_iter()
+        .filter_map(|package| package.manifest_path.parent())
+    {
+        if package_path.join("third_party").exists() {
+            debug!(
+                "Removing existing third_party directory at: {}",
+                package_path.join("third_party")
+            );
+            fs::remove_dir_all(package_path.join("third_party")).unwrap_or_else(|err| {
+                warn!(
+                    "Failed to remove third_party directory at {}: {}",
+                    package_path.join("third_party"),
+                    err
+                );
+            });
+        } else {
+            debug!(
+                "No third_party directory to remove at: {}",
+                package_path.join("third_party")
+            );
+        }
+    }
+    Ok(())
+}
+
+fn remove_third_party_notice(metadata: &cargo_metadata::Metadata) -> io::Result<()> {
+    for dir in once(metadata.workspace_root.as_ref()).chain(
+        metadata
+            .workspace_packages()
+            .iter()
+            .filter_map(|package| package.manifest_path.parent()),
+    ) {
+        let third_party_notice_path = dir.join("THIRD-PARTY-NOTICES.md");
+        if third_party_notice_path.exists() {
+            debug!(
+                "Removing existing THIRD-PARTY-NOTICES.md file at: {}",
+                third_party_notice_path
+            );
+            fs::remove_file(&third_party_notice_path)?;
+        } else {
+            debug!(
+                "No THIRD-PARTY-NOTICES.md file to remove at: {}",
+                third_party_notice_path
+            );
+        }
+    }
     Ok(())
 }
 
