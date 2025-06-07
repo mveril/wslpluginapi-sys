@@ -148,7 +148,7 @@ jobs:
         continue-on-error: false
 
       - name: Run Cargo Publish in Dry-Run Mode
-        run: cargo publish -p wslpluginapi-sys--dry-run
+        run: cargo publish -p wslpluginapi-sys --dry-run
 
       - name: Create GitHub Release
         id: release
@@ -162,7 +162,7 @@ jobs:
             - This version provides bindings for **WSLPluginAPI v${{ env.nuget_version }}**, available on [NuGet](https://www.nuget.org/packages/Microsoft.WSL.PluginApi/${{ env.nuget_version }}).
           prerelease: ${{ env.prerelease == 'true' }}
 
-      - name: Cargo Publish on crates.io
-        run: cargo -p wslpluginapi-sys publish
+      - name: Cargo publish on crates.io
+        run: cargo publish -p wslpluginapi-sys
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
