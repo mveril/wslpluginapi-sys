@@ -67,7 +67,7 @@ fn preprocess_header<P: AsRef<Path>>(
     let modified_content = content.replace("Windows.h", "windows.h");
 
     let out_dir: PathBuf = env::var("OUT_DIR")?.into();
-    let comp_h_file_path = out_dir.join("unix_".to_string() + WSL_PLUGIN_API_HEADER_FILE);
+    let comp_h_file_path = out_dir.join(format!("unix_"{}, WSL_PLUGIN_API_HEADER_FILE_NAME));
     fs::File::create(&comp_h_file_path)?.write_all(modified_content.as_bytes())?;
     println!("Using modified header file at: {:?}", &comp_h_file_path);
     Ok(comp_h_file_path)

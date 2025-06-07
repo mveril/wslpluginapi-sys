@@ -16,10 +16,6 @@ pub struct Package {
 }
 
 impl Package {
-    pub fn new(metadata: Metadata) -> Self {
-        Self { metadata }
-    }
-
     pub fn from_reader<R: BufRead>(reader: R) -> Result<Self, DeError> {
         let package: Package = from_reader(reader)?;
         Ok(package)
