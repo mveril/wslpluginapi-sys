@@ -1,7 +1,7 @@
 use log::debug;
 use markdown_builder::{BlockQuote, Bold, Inline, Link, List};
 
-use crate::{nuspec::LicenceContent, third_pary_mangement::distributed_file::DistributedFile};
+use crate::{nuspec::LicenceContent, third_pary_management::distributed_file::DistributedFile};
 use std::{borrow::Cow, path::Path};
 
 use super::notice_generation::NoticeGeneration;

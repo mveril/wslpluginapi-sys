@@ -1,7 +1,7 @@
 mod licence_definition;
 mod nuget;
 mod nuspec;
-mod third_pary_mangement;
+mod third_pary_management;
 
 use anyhow::Result;
 use nuspec::LicenceContent;
@@ -10,7 +10,7 @@ use std::{
     io::{BufReader, Write},
     path::Path,
 };
-use third_pary_mangement::{
+use third_pary_management::{
     DistributedFile, Status,
     notice::{NoticeGeneration, ThirdPartyNotice, ThirdPartyNoticeItem, ThirdPartyNoticePackage},
 };
