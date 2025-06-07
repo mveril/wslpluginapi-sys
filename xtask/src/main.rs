@@ -5,7 +5,11 @@ mod third_pary_mangement;
 
 use anyhow::Result;
 use nuspec::LicenceContent;
-use std::{fs, io::Write, path::Path};
+use std::{
+    fs,
+    io::{BufReader, Write},
+    path::Path,
+};
 use third_pary_mangement::{
     DistributedFile, Status,
     notice::{NoticeGeneration, ThirdPartyNotice, ThirdPartyNoticeItem, ThirdPartyNoticePackage},
@@ -214,7 +218,8 @@ fn get_nuspec_from_nupkg(
     match archive.by_name(&nuspec_name) {
         Ok(nuspec_file) => {
             debug!("Found .nuspec file: {}", nuspec_name);
-            let package_data: nuspec::Package = serde_xml_rs::from_reader(nuspec_file)?;
+            let nuspec_buffer = BufReader::new(nuspec_file);
+            let package_data = nuspec::Package::from_reader(nuspec_buffer)?;
             trace!("Parsed nuspec data: {:#?}", package_data);
             Ok(Some(package_data))
         }

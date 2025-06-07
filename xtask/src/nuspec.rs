@@ -1,9 +1,11 @@
 use crate::licence_definition::LicenseDefinition;
-use anyhow::{Ok, Result};
+use quick_xml::DeError;
+use quick_xml::de::from_reader;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use spdx::Expression;
 use std::fs;
+use std::io::BufRead;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -12,6 +14,18 @@ pub struct Package {
     #[serde(rename = "metadata")]
     pub metadata: Metadata,
 }
+
+impl Package {
+    pub fn new(metadata: Metadata) -> Self {
+        Self { metadata }
+    }
+
+    pub fn from_reader<R: BufRead>(reader: R) -> Result<Self, DeError> {
+        let package: Package = from_reader(reader)?;
+        Ok(package)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum LicenceContent {
     Body(LicenceBody),
@@ -76,7 +90,7 @@ impl Metadata {
         }
     }
 
-    pub fn get_licence_content(&self) -> Result<Option<LicenceContent>> {
+    pub fn get_licence_content(&self) -> anyhow::Result<Option<LicenceContent>> {
         let year = self.get_year();
         let holders = self.get_holders();
         Ok(if let Some(license) = &self.license {
@@ -98,14 +112,14 @@ pub enum LicenseType {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct License {
-    #[serde(rename = "type")]
+    #[serde(rename = "@type")]
     pub kind: LicenseType,
     #[serde(rename = "$value")]
     value: String,
 }
 
 impl License {
-    pub fn get_body(&self, year: Option<u16>, holders: &str) -> Result<LicenceBody> {
+    pub fn get_body(&self, year: Option<u16>, holders: &str) -> anyhow::Result<LicenceBody> {
         let result = match self.kind {
             LicenseType::File => {
                 let path = Path::new(&self.value);
