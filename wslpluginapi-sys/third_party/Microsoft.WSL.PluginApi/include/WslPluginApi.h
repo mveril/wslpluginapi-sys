@@ -56,6 +56,8 @@ struct WSLDistributionInformation
     uint64_t PidNamespace;
     LPCWSTR PackageFamilyName; // Package family name, or NULL if none
     uint32_t InitPid;          // Pid of the init process. Introduced in 2.0.5
+    LPCWSTR Flavor;            // Type of distribution (ubuntu, debian, ...), introduced in TODO
+    LPCWSTR Version;           // Distribution version, introduced in TODO
 };
 
 struct WslOfflineDistributionInformation
@@ -63,6 +65,8 @@ struct WslOfflineDistributionInformation
     GUID Id; // Distribution ID, guaranteed to be the same accross reboots
     LPCWSTR Name;
     LPCWSTR PackageFamilyName; // Package family name, or NULL if none
+    LPCWSTR Flavor;            // Type of distribution (ubuntu, debian, ...), introduced in TODO
+    LPCWSTR Version;           // Distribution version, introduced in TODO
 };
 
 // Create plan9 mount between Windows & Linux

@@ -4,12 +4,12 @@
 
 ### Microsoft.WSL.PluginApi
 
-**Version :** **2.1.3**
+**Version :** **2.4.4**
 
 **License :** MIT
 
 **Source:**
-[Microsoft.WSL.PluginApi](https://www.nuget.org/packages/Microsoft.WSL.PluginApi/2.1.3)
+[Microsoft.WSL.PluginApi](https://www.nuget.org/packages/Microsoft.WSL.PluginApi/2.4.4)
 
 #### Included files from the package.
 
