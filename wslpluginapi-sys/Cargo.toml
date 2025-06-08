@@ -18,7 +18,7 @@ build = "build/main.rs"
 hooks-field-names = ["dep:struct-field-names-as-array"]
 
 [build-dependencies]
-bindgen = "0.71"
+bindgen = "0.72"
 cfg-if = "1.0"
 constcat = "0.6"
 
