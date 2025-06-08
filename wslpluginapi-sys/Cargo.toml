@@ -13,8 +13,6 @@ categories = ["os::windows-apis", "external-ffi-bindings", "virtualization"]
 build = "build/main.rs"
 
 [features]
-# Enables all features that modify the library's behavior at runtime.
-# Unlike build-related features, this impacts the API's functionalities.
 hooks-field-names = ["dep:struct-field-names-as-array"]
 
 [build-dependencies]
