@@ -1,42 +1,33 @@
 #[cfg(unix)]
 use std::path::PathBuf;
-use std::{borrow::Cow, collections::HashMap, env, path::Path};
+use std::{borrow::Cow, collections::HashMap, path::Path, vec};
 
 use bindgen::callbacks::{ParseCallbacks, TypeKind};
 
 use cfg_if::cfg_if;
 #[derive(Debug, Default)]
-struct BindgenCallback {
-    generate_hooks_fields_name: bool,
-}
+struct BindgenCallback;
 
-impl BindgenCallback {
-    fn new(generate_hooks_fields_names: bool) -> Self {
-        Self {
-            generate_hooks_fields_name: generate_hooks_fields_names,
-        }
-    }
-}
+impl BindgenCallback {}
 
 impl ParseCallbacks for BindgenCallback {
     fn add_derives(&self, info: &bindgen::callbacks::DeriveInfo<'_>) -> Vec<String> {
-        let mut derives = Vec::new();
-
-        if info.kind == TypeKind::Struct {
-            if info.name == "WSLVersion" {
-                derives.extend(vec![
-                    "Eq".to_string(),
-                    "PartialEq".to_string(),
-                    "Ord".to_string(),
-                    "PartialOrd".to_string(),
-                    "Hash".to_string(),
-                ]);
-            } else if info.name.contains("PluginHooks") && self.generate_hooks_fields_name {
-                derives.push("FieldNamesAsSlice".to_string());
-            }
+        if info.kind == TypeKind::Struct && info.name == "WSLVersion" {
+            ["Eq", "PartialEq", "Ord", "PartialOrd", "Hash"]
+                .into_iter()
+                .map(|s| s.into())
+                .collect()
+        } else {
+            Vec::default()
         }
+    }
 
-        derives
+    fn add_attributes(&self, _info: &bindgen::callbacks::AttributeInfo<'_>) -> Vec<String> {
+        if _info.kind == TypeKind::Struct && _info.name == "WSLPluginHooksV1" {
+            vec!["#[cfg_attr(feature=\"hooks-field-names\", derive(FieldNamesAsSlice))]".into()]
+        } else {
+            Vec::default()
+        }
     }
 }
 
@@ -89,7 +80,6 @@ pub(crate) fn process<P: AsRef<Path>, S: AsRef<str>>(
             let header_file_path: Cow<'_, Path> = Cow::Borrowed(header_file_path.as_ref());
         }
     }
-    let hooks_fields_name_feature = env::var("CARGO_FEATURE_HOOKS_FIELD_NAMES").is_ok();
     let mut builder = bindgen::Builder::default()
         .header(header_file_path.to_str().unwrap())
         .raw_line("use windows::core::*;")
@@ -99,18 +89,16 @@ pub(crate) fn process<P: AsRef<Path>, S: AsRef<str>>(
         .raw_line("#[allow(clippy::upper_case_acronyms)] type LPCWSTR = PCWSTR;")
         .raw_line("#[allow(clippy::upper_case_acronyms)] type LPCSTR = PCSTR;")
         .raw_line("#[allow(clippy::upper_case_acronyms)] type DWORD = u32;")
+        .raw_line(r#"#[cfg(feature = "hooks-field-names")]"#)
+        .raw_line("use struct_field_names_as_array::FieldNamesAsSlice;")
         .derive_debug(true)
         .derive_copy(true)
         .allowlist_item("WSL.*")
         .allowlist_item("Wsl.*")
         .clang_arg("-fparse-all-comments")
         .allowlist_recursively(false)
-        .parse_callbacks(Box::new(BindgenCallback::new(hooks_fields_name_feature)))
+        .parse_callbacks(Box::new(BindgenCallback::default()))
         .generate_comments(true);
-
-    if hooks_fields_name_feature {
-        builder = builder.raw_line("use struct_field_names_as_array::FieldNamesAsSlice;");
-    }
 
     if host != target {
         builder = builder.clang_arg(format!("--target={}", rust_to_llvm_target()[target]))
