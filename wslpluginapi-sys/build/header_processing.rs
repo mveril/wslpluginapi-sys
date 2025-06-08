@@ -5,7 +5,7 @@ use std::{borrow::Cow, collections::HashMap, path::Path, vec};
 use bindgen::callbacks::{ParseCallbacks, TypeKind};
 
 use cfg_if::cfg_if;
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct BindgenCallback;
 
 impl BindgenCallback {}
@@ -97,7 +97,7 @@ pub(crate) fn process<P: AsRef<Path>, S: AsRef<str>>(
         .allowlist_item("Wsl.*")
         .clang_arg("-fparse-all-comments")
         .allowlist_recursively(false)
-        .parse_callbacks(Box::new(BindgenCallback::default()))
+        .parse_callbacks(Box::new(BindgenCallback))
         .generate_comments(true);
 
     if host != target {
