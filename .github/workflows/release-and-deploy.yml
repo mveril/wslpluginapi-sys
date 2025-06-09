@@ -132,6 +132,7 @@ jobs:
           Import-Module -Name PSSemVer -ErrorAction Stop
           try {
               $rawVersion = $tagName -replace '^v', ''
+              echo "version=$rawVersion" >> $env:GITHUB_ENV
               $Version = [PSSemVer]::Parse($rawVersion)
               $prereleaseValue = ($Version.Prerelease -ne $null).ToString().ToLower()
               echo "prerelease=$prereleaseValue" >> $env:GITHUB_ENV
@@ -158,7 +159,7 @@ jobs:
           name: ${{ env.prerelease == 'true' && 'Prerelease' || 'Release' }} ${{ env.TAG_NAME }}
           body: |
             This is a **${{ env.prerelease == 'true' && 'prerelease' || 'release' }}** release of **${{ github.repository }}**.
-            - The crate is available on [Crates.io](https://crates.io/crates/${{ github.repository.name }}).
+            - The crate is available on [Crates.io](https://crates.io/crates/wslpluginapi-sys/${{ env.version }}).
             - This version provides bindings for **WSLPluginAPI v${{ env.nuget_version }}**, available on [NuGet](https://www.nuget.org/packages/Microsoft.WSL.PluginApi/${{ env.nuget_version }}).
           prerelease: ${{ env.prerelease == 'true' }}
 
