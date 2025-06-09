@@ -20,6 +20,9 @@ bindgen = "0.72"
 cfg-if = "1.0"
 constcat = "0.6"
 
+[target.'cfg(unix)'.build-dependencies]
+cow-utils = { version = "0.1" }
+
 [dependencies]
 libc = "0.2"
 struct-field-names-as-array = { version = "0.3", features = [
