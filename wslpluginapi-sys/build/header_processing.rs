@@ -1,10 +1,13 @@
+#[cfg(unix)]
+use crate::WSL_PLUGIN_API_HEADER_FILE_NAME;
+use bindgen::callbacks::{ParseCallbacks, TypeKind};
+use cfg_if::cfg_if;
+#[cfg(unix)]
+use cow_utils::CowUtils;
 use std::{borrow::Cow, collections::HashMap, path::Path, vec};
 #[cfg(unix)]
-use std::{env, path::PathBuf};
+use std::{env, fs, io::Write, path::PathBuf};
 
-use bindgen::callbacks::{ParseCallbacks, TypeKind};
-
-use cfg_if::cfg_if;
 #[derive(Debug)]
 struct BindgenCallback;
 
@@ -47,21 +50,29 @@ fn rust_to_llvm_target() -> HashMap<&'static str, &'static str> {
 
 /// If the host is not Windows, replace `Windows.h` with `windows.h` in a temporary file.
 #[cfg(unix)]
-fn preprocess_header<P: AsRef<Path>>(
-    header_path: P,
-) -> Result<PathBuf, Box<dyn std::error::Error>> {
-    use std::{fs, io::Write, path::PathBuf};
-
-    use crate::WSL_PLUGIN_API_HEADER_FILE_NAME;
-
+fn preprocess_header<'a, P: 'a + AsRef<Path>>(
+    header_path: &'a P,
+) -> Result<Cow<'a, Path>, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(&header_path)?;
-    let modified_content = content.replace("Windows.h", "windows.h");
+    let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
+    let new_content = if target_env == "msvc" {
+        content.cow_replace("windows.h", "Windows.h")
+    } else {
+        content.cow_replace("Windows.h", "windows.h")
+    };
 
-    let out_dir: PathBuf = env::var("OUT_DIR")?.into();
-    let comp_h_file_path = out_dir.join(format!("unix_{}", WSL_PLUGIN_API_HEADER_FILE_NAME));
-    fs::File::create(&comp_h_file_path)?.write_all(modified_content.as_bytes())?;
-    println!("Using modified header file at: {:?}", &comp_h_file_path);
-    Ok(comp_h_file_path)
+    let result = match new_content {
+        Cow::Borrowed(_) => Cow::Borrowed(header_path.as_ref()),
+        Cow::Owned(ref modified_content) => {
+            let out_dir: PathBuf = env::var("OUT_DIR")?.into();
+            let out_path = out_dir.join(format!("unix_{}", WSL_PLUGIN_API_HEADER_FILE_NAME));
+            let mut file = fs::File::create(&out_path)?;
+            file.write_all(modified_content.as_bytes())?;
+            println!("Using modified header file at: {:?}", &out_path);
+            Cow::Owned(out_path)
+        }
+    };
+    Ok(result)
 }
 
 pub(crate) fn process<P: AsRef<Path>, S: AsRef<str>>(
@@ -72,14 +83,15 @@ pub(crate) fn process<P: AsRef<Path>, S: AsRef<str>>(
     let host = host.as_ref();
     let target = target.as_ref();
     // Here we use cow to have the same type and avoiding clowning the PathBuff
-    cfg_if! {
-        if #[cfg(unix)] {
-            let header_file_path: Cow<'_, Path> = Cow::Owned(preprocess_header(header_file_path)?);
+    let header_file_path: Cow<'_, Path> = {
+        cfg_if! {
+            if #[cfg(unix)] {
+                preprocess_header(&header_file_path)?
+            } else {
+                Cow::Borrowed(header_file_path.as_ref())
+            }
         }
-        else {
-            let header_file_path: Cow<'_, Path> = Cow::Borrowed(header_file_path.as_ref());
-        }
-    }
+    };
     let mut builder = bindgen::Builder::default()
         .header(header_file_path.to_str().unwrap())
         .raw_line("use windows::core::*;")
