@@ -103,8 +103,6 @@ pub(crate) fn process<P: AsRef<Path>, S: AsRef<str>>(
         .raw_line("#[allow(clippy::upper_case_acronyms)] type DWORD = u32;")
         .raw_line(r#"#[cfg(feature = "hooks-field-names")]"#)
         .raw_line("use struct_field_names_as_array::FieldNamesAsSlice;")
-        .derive_debug(true)
-        .derive_copy(true)
         .allowlist_item("WSL.*")
         .allowlist_item("Wsl.*")
         .clang_arg("-fparse-all-comments")
