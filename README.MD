@@ -17,12 +17,8 @@
 ## Prerequisites
 
 Before using `wslpluginapi-sys`, ensure you have the following installed:
-
 - **Rust**: Latest stable version.
 
-### Optional
-
-- **NuGet**: Use the NuGet CLI in the xtask nuget process to download NuGet (if not present, we use reqwest to do this process).
 
 ## Installation
 
@@ -39,7 +35,7 @@ This crate provides unsafe bindings that closely follow the original C API. User
 
 ## NuGet package dependency
 
-This project depends on a third-party dependency called [Microsoft.WSL.PluginApi](https://www.nuget.org/packages/Microsoft.WSL.PluginApi) from Microsoft, available on NuGet and providing bindings for it. To upgrade it, change the version build metadata of the project and run `cargo xtask nuget` (don't forget to commit changes generated from the xtask). This xtask extracts all the needed content from the NuGet package. For more info see `THIRD-PARTY-NOTICES.md`
+This project depends on a third-party dependency called [Microsoft.WSL.PluginApi](https://www.nuget.org/packages/Microsoft.WSL.PluginApi) from Microsoft, available on NuGet and providing bindings for it. To upgrade it, change the version build metadata of the project and run `cargo xtask bindgen` (don't forget to commit changes generated from the xtask). This xtask extracts all the needed content from the NuGet package. For more info see `THIRD-PARTY-NOTICES.md`
 
 ## License
 

@@ -1,0 +1,14 @@
+{
+  "id": "Microsoft.WSL.PluginApi",
+  "version": "2.4.4",
+  "header_file_path": "build\\native\\include\\WslPluginApi.h",
+  "output_file_path": "WslPluginApi.rs",
+  "bindgen": {
+    "bindgen_version": "0.72.0",
+    "custom_llvm_target": null,
+    "build_host": {
+      "os": "windows",
+      "arch": "x86_64"
+    }
+  }
+}

@@ -10,15 +10,14 @@ publish-lockfile = false
 repository.workspace = true
 keywords = ["wsl", "plugin", "windows", "linux", "ffi"]
 categories = ["os::windows-apis", "external-ffi-bindings", "virtualization"]
-build = "build/main.rs"
 
 [features]
 hooks-field-names = ["dep:struct-field-names-as-array"]
 
 [build-dependencies]
-bindgen = "0.72"
-cfg-if = "1.0"
-constcat = "0.6"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+semver = "1.0"
 
 [target.'cfg(unix)'.build-dependencies]
 cow-utils = { version = "0.1" }
