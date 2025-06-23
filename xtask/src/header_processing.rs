@@ -1,9 +1,8 @@
 use bindgen::callbacks::{ParseCallbacks, TypeKind};
 use cfg_if::cfg_if;
-use clap::builder;
 #[cfg(unix)]
 use cow_utils::CowUtils;
-use std::{borrow::Cow, path::Path, vec};
+use std::{path::Path, vec};
 #[cfg(unix)]
 use std::{fs, io};
 

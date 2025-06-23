@@ -24,6 +24,8 @@ walkdir = "2.5"
 bindgen = "0.72"
 cfg-if = "1.0"
 constcat = "0.6"
+sha2 = "0.10.9"
+hex = "0.4"
 
 [build-dependencies]
 cargo-lock = "10.1"

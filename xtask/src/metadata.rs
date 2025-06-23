@@ -1,4 +1,6 @@
-use clap::builder::Str;
+use crate::utils::writers::ToWriter;
+use std::io::Write;
+
 use serde::Serialize;
 
 #[derive(Serialize, Debug)]
@@ -8,6 +10,14 @@ pub struct Metadata {
     pub header_file_path: String,
     pub output_file_path: String,
     pub bindgen: BindgenMetadata,
+}
+
+impl ToWriter for Metadata {
+    type Errror = serde_json::Error;
+
+    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<(), Self::Errror> {
+        serde_json::to_writer_pretty(writer, &self)
+    }
 }
 
 impl Metadata {

@@ -2,28 +2,28 @@ mod header_processing;
 mod metadata;
 mod nuget;
 mod nuspec;
-use constcat::concat;
-
+mod utils;
 use anyhow::Result;
 use cargo_metadata::{Metadata, Package};
-use std::{
-    fs,
-    io::BufReader,
-    path::{Path, PathBuf},
-};
-use walkdir::WalkDir;
-
-use crate::nuget::{Mode, ensure_package_installed};
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
+use constcat::concat;
 use log::{debug, info, trace, warn};
+use nuget::{Mode, ensure_package_installed};
+use sha2::Sha256;
+use std::fs::File;
+use std::{
+    fs,
+    io::{BufReader, Write},
+    path::{Path, PathBuf},
+};
+use utils::writers::ToWriter;
 use zip::ZipArchive;
 
 const WSL_PLUGIN_API_FILE_BASE_NAME: &str = "WslPluginApi";
 const WSL_PLUGIN_API_HEADER_FILE_NAME: &str = concat!(WSL_PLUGIN_API_FILE_BASE_NAME, ".h");
 const WSL_PLUGIN_API_OUTPUT_FILE_NAME: &str = concat!(WSL_PLUGIN_API_FILE_BASE_NAME, ".rs");
 
-/// Tâches de build et développement personnalisées pour le projet.
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
@@ -57,7 +57,7 @@ fn main() -> Result<()> {
                 if package
                     .manifest_path
                     .parent()
-                    .map_or(true, |p| p != Path::new(env!("CARGO_MANIFEST_DIR")))
+                    .is_none_or(|p| p != Path::new(env!("CARGO_MANIFEST_DIR")))
                 {
                     process_package(package, workspace_root, target.as_deref())?;
                 } else {
@@ -76,7 +76,6 @@ fn fetch_cargo_metadata() -> Result<Metadata> {
     Ok(metadata)
 }
 
-/// `llvm_target` est optionnel (None = autodetect)
 fn process_package(
     package: &Package,
     workspace_root: &Path,
@@ -103,7 +102,7 @@ fn process_package(
 
     let nuget_pkg_path = ensure_package_installed(
         nuget_package_name,
-        &nuget_package_version,
+        nuget_package_version,
         workspace_root,
         Mode::TryNuget,
     )?;
@@ -111,24 +110,42 @@ fn process_package(
     let nuspec =
         get_nuspec_from_nupkg(&nuget_pkg_path, nuget_package_name, nuget_package_version)?.unwrap();
     let header_path = get_header_path(&nuget_pkg_path, WSL_PLUGIN_API_HEADER_FILE_NAME)?;
-    let bindig = header_processing::process(&header_path, llvm_target)?; // Correction ici : passage d'un Option<&str>
+    let bindig = header_processing::process(&header_path, llvm_target)?;
     if let Some(package_path) = package.manifest_path.parent() {
-        let build_path = package_path.join("build");
-        fs::create_dir_all(&build_path)?;
-        let out_file = build_path.join(WSL_PLUGIN_API_OUTPUT_FILE_NAME);
-        let metadata_path = build_path.join("metadata.json");
-        let metadata = metadata::Metadata::new(
-            nuspec.metadata.id,
-            nuspec.metadata.version.to_string(),
-            &header_path
-                .strip_prefix(nuget_pkg_path)?
-                .to_string_lossy()
-                .into_owned(),
-            out_file.strip_prefix(build_path)?.as_str(),
-            llvm_target,
-        );
-        serde_json::to_writer_pretty(fs::File::create(metadata_path)?, &metadata)?;
-        bindig.write_to_file(out_file)?;
+        let build_path = &package_path.join("build");
+        fs::create_dir_all(build_path)?;
+        let mut checksum_file = fs::File::create(build_path.join("checksum.sha256"))?;
+        let metadata_path = &build_path.join("metadata.json");
+        let out_path = build_path.join(WSL_PLUGIN_API_OUTPUT_FILE_NAME);
+        {
+            let metadata = metadata::Metadata::new(
+                nuspec.metadata.id,
+                nuspec.metadata.version.to_string(),
+                header_path
+                    .strip_prefix(nuget_pkg_path)?
+                    .to_string_lossy()
+                    .into_owned(),
+                out_path.strip_prefix(build_path)?.as_str(),
+                llvm_target,
+            );
+            let hash_result =
+                &metadata.to_write_and_hash::<Sha256, _>(&mut fs::File::create(metadata_path)?)?;
+            writeln!(
+                checksum_file,
+                "{}  {}",
+                hex::encode(hash_result),
+                metadata_path.strip_prefix(build_path)?
+            )?;
+        }
+        {
+            let hash = bindig.to_write_and_hash::<Sha256, _>(&mut File::create(&out_path)?)?;
+            writeln!(
+                checksum_file,
+                "{}  {}",
+                hex::encode(hash),
+                out_path.strip_prefix(build_path)?
+            )?;
+        }
         Ok(())
     } else {
         warn!(

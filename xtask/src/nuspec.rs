@@ -1,11 +1,8 @@
 use quick_xml::DeError;
 use quick_xml::de::from_reader;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
-use spdx::Expression;
-use std::fs;
 use std::io::BufRead;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "package")]
