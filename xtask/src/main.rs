@@ -110,10 +110,15 @@ fn process_package(
     let nuspec =
         get_nuspec_from_nupkg(&nuget_pkg_path, nuget_package_name, nuget_package_version)?.unwrap();
     let header_path = get_header_path(&nuget_pkg_path, WSL_PLUGIN_API_HEADER_FILE_NAME)?;
-    let bindig = header_processing::process(&header_path, llvm_target)?;
+    let mut bindig_builder = header_processing::core_process(&header_path, llvm_target)?;
     if let Some(package_path) = package.manifest_path.parent() {
         let build_path = &package_path.join("build");
         fs::create_dir_all(build_path)?;
+        if let Some(fmtpath) = find_rust_fmt_for_file(workspace_root, build_path.as_std_path()) {
+            bindig_builder = bindig_builder.with_rustfmt(fmtpath);
+        };
+        let binding = bindig_builder.generate()?;
+        File::create(build_path.join(".gitattributes"))?.write_all("* -text".as_bytes())?;
         let mut checksum_file = fs::File::create(build_path.join("checksum.sha256"))?;
         let metadata_path = &build_path.join("metadata.json");
         let out_path = build_path.join(WSL_PLUGIN_API_OUTPUT_FILE_NAME);
@@ -139,7 +144,7 @@ fn process_package(
         }
         {
             let hash_result =
-                bindig.to_write_and_hash::<Sha256, _>(&mut File::create(&out_path)?)?;
+                binding.to_write_and_hash::<Sha256, _>(&mut File::create(&out_path)?)?;
             writeln!(
                 checksum_file,
                 "{}  {}",
@@ -195,4 +200,29 @@ fn get_nuspec_from_nupkg(
             Ok(None)
         }
     }
+}
+
+pub fn find_rust_fmt_for_file<P: AsRef<Path>>(root: P, parent: P) -> Option<PathBuf> {
+    let root = root.as_ref().canonicalize().ok()?;
+    let mut current = parent.as_ref().canonicalize().ok()?;
+
+    loop {
+        for name in &["rustfmt.toml", ".rustfmt.toml"] {
+            let candidate = current.join(name);
+            if candidate.exists() {
+                info!("rustfmt found {}", candidate.to_string_lossy());
+                return Some(candidate);
+            }
+        }
+        if current == root {
+            break;
+        }
+        if let Some(parent) = current.parent() {
+            current = parent.to_path_buf();
+        } else {
+            break;
+        }
+    }
+    warn!("rustfmt not found");
+    None
 }

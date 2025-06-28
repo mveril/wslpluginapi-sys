@@ -3,7 +3,7 @@ use cfg_if::cfg_if;
 #[cfg(unix)]
 use cow_utils::CowUtils;
 #[cfg(unix)]
-use std::{fs, io};
+use std::{borrow::Cow, fs, io};
 use std::{path::Path, vec};
 
 #[derive(Debug)]
@@ -51,10 +51,10 @@ fn preprocess_header<'a, P: 'a + AsRef<Path>>(
     Ok(content)
 }
 
-pub(crate) fn process<P: AsRef<Path>>(
+pub(crate) fn core_process<P: AsRef<Path>>(
     header_file_path: P,
     target: Option<&str>,
-) -> anyhow::Result<bindgen::Bindings> {
+) -> anyhow::Result<bindgen::Builder> {
     // Here we use a custom struct because the file can be temporary.
     let mut builder = bindgen::Builder::default()
         .raw_line("use windows::core::*;")
@@ -84,6 +84,5 @@ pub(crate) fn process<P: AsRef<Path>>(
             builder = builder.header(header_file_path.as_ref().to_str().unwrap());
         }
     );
-    let binding = builder.generate()?;
-    Ok(binding)
+    Ok(builder)
 }
