@@ -2,9 +2,9 @@ use bindgen::callbacks::{ParseCallbacks, TypeKind};
 use cfg_if::cfg_if;
 #[cfg(unix)]
 use cow_utils::CowUtils;
-use std::{path::Path, vec};
 #[cfg(unix)]
 use std::{fs, io};
+use std::{path::Path, vec};
 
 #[derive(Debug)]
 struct BindgenCallback;

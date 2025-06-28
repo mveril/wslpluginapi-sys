@@ -16,7 +16,7 @@ fn main() {
         }
         lockfile.expect("Cargo.lock not found")
     };
-    
+
     if let Some(pkg) = lockfile
         .packages
         .iter()

@@ -138,11 +138,12 @@ fn process_package(
             )?;
         }
         {
-            let hash = bindig.to_write_and_hash::<Sha256, _>(&mut File::create(&out_path)?)?;
+            let hash_result =
+                bindig.to_write_and_hash::<Sha256, _>(&mut File::create(&out_path)?)?;
             writeln!(
                 checksum_file,
                 "{}  {}",
-                hex::encode(hash),
+                hex::encode(hash_result),
                 out_path.strip_prefix(build_path)?
             )?;
         }

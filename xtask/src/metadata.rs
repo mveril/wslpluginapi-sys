@@ -13,9 +13,9 @@ pub struct Metadata {
 }
 
 impl ToWriter for Metadata {
-    type Errror = serde_json::Error;
+    type Error = serde_json::Error;
 
-    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<(), Self::Errror> {
+    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<(), Self::Error> {
         serde_json::to_writer_pretty(writer, &self)
     }
 }
