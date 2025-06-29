@@ -143,7 +143,7 @@ fn process_package(
         }
         {
             let mut hash_writer = HashWriter::<_, Sha256>::new(File::create(&out_path)?);
-            format_with_rustfmt(binding, &mut hash_writer);
+            format_with_rustfmt(binding, &mut hash_writer, Some(&build_path.as_std_path()));
             writeln!(
                 checksum_file,
                 "{}  {}",

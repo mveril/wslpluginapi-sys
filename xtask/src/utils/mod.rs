@@ -1,17 +1,25 @@
 pub mod writers;
 
 use std::io::{self, Read, Write};
+use std::path::Path;
 use std::process::{Command, Stdio};
 
 use bindgen::Bindings;
 
-pub fn format_with_rustfmt<W: Write>(binding: Bindings, mut output: W) -> io::Result<()> {
-    let mut child = Command::new("rustfmt")
-        .arg("--emit")
+pub fn format_with_rustfmt<W: Write>(
+    binding: Bindings,
+    mut output: W,
+    workdir: Option<&Path>,
+) -> io::Result<()> {
+    let mut cmd = Command::new("rustfmt");
+    cmd.arg("--emit")
         .arg("stdout")
         .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()?;
+        .stdout(Stdio::piped());
+    if let Some(dir) = workdir {
+        cmd.current_dir(dir);
+    }
+    let mut child = cmd.spawn()?;
 
     {
         let stdin = child
