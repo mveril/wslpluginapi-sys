@@ -1,5 +1,5 @@
-use std::io::Write;
 use serde::Serialize;
+use std::io::Write;
 
 #[derive(Serialize, Debug)]
 pub struct Metadata {
