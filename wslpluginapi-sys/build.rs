@@ -26,7 +26,13 @@ fn main() -> anyhow::Result<()> {
         .map(|entry| entry.path())
         .filter(|path| path.is_file())
         .filter(|path| path.extension().is_none_or(|ext| ext != "sha256"))
-        .filter(|path| !path.starts_with(".git"))
+        .filter(|path| {
+            !path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| name.starts_with(".git"))
+                .unwrap_or(false)
+        })
         .filter_map(|path| {
             compute_hash::<Sha256, _>(&path)
                 .ok()

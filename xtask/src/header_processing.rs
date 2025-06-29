@@ -51,10 +51,10 @@ fn preprocess_header<'a, P: 'a + AsRef<Path>>(
     Ok(content)
 }
 
-pub(crate) fn core_process<P: AsRef<Path>>(
+pub(crate) fn process<P: AsRef<Path>>(
     header_file_path: P,
     target: Option<&str>,
-) -> anyhow::Result<bindgen::Builder> {
+) -> anyhow::Result<bindgen::Bindings> {
     // Here we use a custom struct because the file can be temporary.
     let mut builder = bindgen::Builder::default()
         .raw_line("use windows::core::*;")
@@ -67,6 +67,7 @@ pub(crate) fn core_process<P: AsRef<Path>>(
         .raw_line(r#"#[cfg(feature = "hooks-field-names")]"#)
         .raw_line("use struct_field_names_as_array::FieldNamesAsSlice;")
         .allowlist_item("WSL.*")
+        .formatter(bindgen::Formatter::Rustfmt)
         .allowlist_item("Wsl.*")
         .clang_arg("-fparse-all-comments")
         .allowlist_recursively(false)
@@ -84,5 +85,5 @@ pub(crate) fn core_process<P: AsRef<Path>>(
             builder = builder.header(header_file_path.as_ref().to_str().unwrap());
         }
     );
-    Ok(builder)
+    Ok(builder.generate()?)
 }

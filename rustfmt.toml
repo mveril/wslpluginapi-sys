@@ -1,1 +1,2 @@
 newline_style = "Unix"
+ignore = ["build/**/*.rs"]

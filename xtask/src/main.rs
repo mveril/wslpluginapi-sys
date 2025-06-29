@@ -12,13 +12,16 @@ use log::{debug, info, trace, warn};
 use nuget::{Mode, ensure_package_installed};
 use sha2::Sha256;
 use std::fs::File;
+use std::process::Stdio;
 use std::{
     fs,
     io::{BufReader, Write},
     path::{Path, PathBuf},
 };
-use utils::writers::ToWriter;
 use zip::ZipArchive;
+
+use crate::utils::format_with_rustfmt;
+use crate::utils::writers::HashWriter;
 
 const WSL_PLUGIN_API_FILE_BASE_NAME: &str = "WslPluginApi";
 const WSL_PLUGIN_API_HEADER_FILE_NAME: &str = concat!(WSL_PLUGIN_API_FILE_BASE_NAME, ".h");
@@ -110,14 +113,10 @@ fn process_package(
     let nuspec =
         get_nuspec_from_nupkg(&nuget_pkg_path, nuget_package_name, nuget_package_version)?.unwrap();
     let header_path = get_header_path(&nuget_pkg_path, WSL_PLUGIN_API_HEADER_FILE_NAME)?;
-    let mut bindig_builder = header_processing::core_process(&header_path, llvm_target)?;
+    let binding = header_processing::process(&header_path, llvm_target)?;
     if let Some(package_path) = package.manifest_path.parent() {
         let build_path = &package_path.join("build");
         fs::create_dir_all(build_path)?;
-        if let Some(fmtpath) = find_rust_fmt_for_file(workspace_root, build_path.as_std_path()) {
-            bindig_builder = bindig_builder.with_rustfmt(fmtpath);
-        };
-        let binding = bindig_builder.generate()?;
         File::create(build_path.join(".gitattributes"))?.write_all("* -text".as_bytes())?;
         let mut checksum_file = fs::File::create(build_path.join("checksum.sha256"))?;
         let metadata_path = &build_path.join("metadata.json");
@@ -133,22 +132,22 @@ fn process_package(
                 out_path.strip_prefix(build_path)?.as_str(),
                 llvm_target,
             );
-            let hash_result =
-                &metadata.to_write_and_hash::<Sha256, _>(&mut fs::File::create(metadata_path)?)?;
+            let mut hash_writer = HashWriter::<_, Sha256>::new(fs::File::create(metadata_path)?);
+            metadata.write(&mut hash_writer)?;
             writeln!(
                 checksum_file,
                 "{}  {}",
-                hex::encode(hash_result),
+                hex::encode(hash_writer.finalise()),
                 metadata_path.strip_prefix(build_path)?
             )?;
         }
         {
-            let hash_result =
-                binding.to_write_and_hash::<Sha256, _>(&mut File::create(&out_path)?)?;
+            let mut hash_writer = HashWriter::<_, Sha256>::new(File::create(&out_path)?);
+            format_with_rustfmt(binding, &mut hash_writer);
             writeln!(
                 checksum_file,
                 "{}  {}",
-                hex::encode(hash_result),
+                hex::encode(hash_writer.finalise()),
                 out_path.strip_prefix(build_path)?
             )?;
         }
@@ -200,29 +199,4 @@ fn get_nuspec_from_nupkg(
             Ok(None)
         }
     }
-}
-
-pub fn find_rust_fmt_for_file<P: AsRef<Path>>(root: P, parent: P) -> Option<PathBuf> {
-    let root = root.as_ref().canonicalize().ok()?;
-    let mut current = parent.as_ref().canonicalize().ok()?;
-
-    loop {
-        for name in &["rustfmt.toml", ".rustfmt.toml"] {
-            let candidate = current.join(name);
-            if candidate.exists() {
-                info!("rustfmt found {}", candidate.to_string_lossy());
-                return Some(candidate);
-            }
-        }
-        if current == root {
-            break;
-        }
-        if let Some(parent) = current.parent() {
-            current = parent.to_path_buf();
-        } else {
-            break;
-        }
-    }
-    warn!("rustfmt not found");
-    None
 }

@@ -1,6 +1,4 @@
 mod double_writer;
-mod ref_writer;
-mod to_writer;
+mod hash_writer;
 pub use double_writer::DoubleWriter;
-pub use ref_writer::RefWriter;
-pub use to_writer::ToWriter;
+pub use hash_writer::HashWriter;
