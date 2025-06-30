@@ -32,7 +32,6 @@ impl ParseCallbacks for BindgenCallback {
     }
 }
 
-/// If the host is not Windows, replace `Windows.h` with `windows.h` in a temporary file.
 #[cfg(unix)]
 fn preprocess_header<'a, P: 'a + AsRef<Path>>(
     header_path: &'a P,
@@ -55,7 +54,6 @@ pub(crate) fn process<P: AsRef<Path>>(
     header_file_path: P,
     target: Option<&str>,
 ) -> anyhow::Result<bindgen::Bindings> {
-    // Here we use a custom struct because the file can be temporary.
     let mut builder = bindgen::Builder::default()
         .raw_line("use windows::core::*;")
         .raw_line("use windows::Win32::Foundation::*;")
