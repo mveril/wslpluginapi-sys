@@ -12,7 +12,6 @@ use log::{debug, info, trace, warn};
 use nuget::{Mode, ensure_package_installed};
 use sha2::Sha256;
 use std::fs::File;
-use std::process::Stdio;
 use std::{
     fs,
     io::{BufReader, Write},
@@ -21,7 +20,7 @@ use std::{
 use zip::ZipArchive;
 
 use crate::utils::format_with_rustfmt;
-use crate::utils::writers::HashWriter;
+use crate::utils::writers::Sha256HashWriter;
 
 const WSL_PLUGIN_API_FILE_BASE_NAME: &str = "WslPluginApi";
 const WSL_PLUGIN_API_HEADER_FILE_NAME: &str = concat!(WSL_PLUGIN_API_FILE_BASE_NAME, ".h");
@@ -132,22 +131,22 @@ fn process_package(
                 out_path.strip_prefix(build_path)?.as_str(),
                 llvm_target,
             );
-            let mut hash_writer = HashWriter::<_, Sha256>::new(fs::File::create(metadata_path)?);
+            let mut hash_writer = Sha256HashWriter::new(fs::File::create(metadata_path)?);
             metadata.write(&mut hash_writer)?;
             writeln!(
                 checksum_file,
                 "{}  {}",
-                hex::encode(hash_writer.finalise()),
+                hex::encode(hash_writer.finalise()?),
                 metadata_path.strip_prefix(build_path)?
             )?;
         }
         {
-            let mut hash_writer = HashWriter::<_, Sha256>::new(File::create(&out_path)?);
-            format_with_rustfmt(binding, &mut hash_writer, Some(&build_path.as_std_path()));
+            let mut hash_writer = Sha256HashWriter::new(File::create(&out_path)?);
+            format_with_rustfmt(binding, &mut hash_writer, Some(&build_path.as_std_path()))?;
             writeln!(
                 checksum_file,
                 "{}  {}",
-                hex::encode(hash_writer.finalise()),
+                hex::encode(hash_writer.finalise()?),
                 out_path.strip_prefix(build_path)?
             )?;
         }

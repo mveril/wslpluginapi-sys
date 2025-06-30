@@ -1,37 +1,37 @@
-use sha2::digest::Output;
-use std::io::Write;
+use sha2::{Sha256, digest::Output};
+use std::io::{Result, Write};
 
 use sha2::Digest;
 
-use super::DoubleWriter;
+pub type Sha256HashWriter<W> = HashWriter<W, Sha256>;
 
-pub struct HashWriter<W: Write, D: Digest + Write> {
-    dw: DoubleWriter<W, D>,
+pub struct HashWriter<W: Write, D: Digest> {
+    writer: W,
+    hash: D,
 }
 
-impl<W: Write, D: Digest + Write> Write for HashWriter<W, D> {
+impl<W: Write, D: Digest> Write for HashWriter<W, D> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.dw.write(buf)
+        let value = self.writer.write(buf)?;
+        self.hash.update(&buf[..value]);
+        return Ok(value);
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.dw.flush()
-    }
-
-    fn write_all(&mut self, mut buf: &[u8]) -> std::io::Result<()> {
-        self.dw.write_all(buf)
+        self.writer.flush()
     }
 }
 
-impl<W: Write, D: Digest + Write> HashWriter<W, D> {
+impl<W: Write, D: Digest> HashWriter<W, D> {
     pub fn new(writer: W) -> Self {
         Self {
-            dw: DoubleWriter::new(writer, D::new()),
+            writer,
+            hash: D::new(),
         }
     }
 
-    pub fn finalise(self) -> Output<D> {
-        let (_, hasher) = self.dw.into_inner();
-        hasher.finalize()
+    pub fn finalise(mut self) -> Result<Output<D>> {
+        self.writer.flush()?;
+        Ok(self.hash.finalize())
     }
 }
