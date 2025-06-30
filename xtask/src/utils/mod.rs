@@ -25,7 +25,7 @@ pub fn format_with_rustfmt<W: Write>(
         let stdin = child
             .stdin
             .take()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Failed to open rustfmt stdin"))?;
+            .ok_or_else(|| io::Error::other("Failed to open rustfmt stdin"))?;
         binding.write(Box::new(stdin))?;
     }
 
@@ -35,9 +35,8 @@ pub fn format_with_rustfmt<W: Write>(
 
     let status = child.wait()?;
     if !status.success() {
-        Err(io::Error::new(
-            io::ErrorKind::Other,
-            format!("rustfmt exited with status {}", status),
+        Err(io::Error::other(
+            format!("rustfmt exited with status {status}"),
         ))
     } else {
         Ok(())

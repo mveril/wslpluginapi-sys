@@ -14,7 +14,7 @@ impl<W: Write, D: Digest> Write for HashWriter<W, D> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let value = self.writer.write(buf)?;
         self.hash.update(&buf[..value]);
-        return Ok(value);
+        Ok(value)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {

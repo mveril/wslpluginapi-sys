@@ -10,7 +10,6 @@ use clap_verbosity_flag::{InfoLevel, Verbosity};
 use constcat::concat;
 use log::{debug, info, trace, warn};
 use nuget::{Mode, ensure_package_installed};
-use sha2::Sha256;
 use std::fs::File;
 use std::{
     fs,
@@ -74,7 +73,7 @@ fn main() -> Result<()> {
 fn fetch_cargo_metadata() -> Result<Metadata> {
     debug!("Fetching cargo metadata...");
     let metadata = cargo_metadata::MetadataCommand::new().exec()?;
-    trace!("Full cargo metadata: {:#?}", metadata);
+    trace!("Full cargo metadata: {metadata:#?}");
     Ok(metadata)
 }
 
@@ -98,8 +97,7 @@ fn process_package(
 
     let nuget_package_name = "Microsoft.WSL.PluginApi";
     debug!(
-        "Ensuring NuGet package installed: {} @ {}",
-        nuget_package_name, nuget_package_version
+        "Ensuring NuGet package installed: {nuget_package_name} @ {nuget_package_version}"
     );
 
     let nuget_pkg_path = ensure_package_installed(
@@ -142,7 +140,7 @@ fn process_package(
         }
         {
             let mut hash_writer = Sha256HashWriter::new(File::create(&out_path)?);
-            format_with_rustfmt(binding, &mut hash_writer, Some(&build_path.as_std_path()))?;
+            format_with_rustfmt(binding, &mut hash_writer, Some(build_path.as_std_path()))?;
             writeln!(
                 checksum_file,
                 "{}  {}",
@@ -171,22 +169,21 @@ fn get_nuspec_from_nupkg(
     nuget_package_name: &str,
     nuget_package_version: &str,
 ) -> Result<Option<nuspec::Package>> {
-    let nuspec_name = format!("{}.nuspec", nuget_package_name);
-    debug!("Looking for nuspec file: {}", nuspec_name);
+    let nuspec_name = format!("{nuget_package_name}.nuspec");
+    debug!("Looking for nuspec file: {nuspec_name}");
 
     let nupkg_file = nuget_pkg_path.join(format!(
-        "{}.{}.nupkg",
-        nuget_package_name, nuget_package_version
+        "{nuget_package_name}.{nuget_package_version}.nupkg"
     ));
     let zip_file = File::open(&nupkg_file)?;
     let mut archive = ZipArchive::new(zip_file)?;
     trace!("ZIP archive opened with {} files", archive.len());
     match archive.by_name(&nuspec_name) {
         Ok(nuspec_file) => {
-            debug!("Found .nuspec file: {}", nuspec_name);
+            debug!("Found .nuspec file: {nuspec_name}");
             let nuspec_buffer = BufReader::new(nuspec_file);
             let package_data = nuspec::Package::from_reader(nuspec_buffer)?;
-            trace!("Parsed nuspec data: {:#?}", package_data);
+            trace!("Parsed nuspec data: {package_data:#?}");
             Ok(Some(package_data))
         }
         Err(_) => {

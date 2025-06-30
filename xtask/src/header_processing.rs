@@ -75,7 +75,7 @@ pub(crate) fn process<P: AsRef<Path>>(
         .generate_comments(true);
 
     if let Some(llvm_target) = target {
-        builder = builder.clang_arg(format!("--target={}", llvm_target));
+        builder = builder.clang_arg(format!("--target={llvm_target}"));
     }
     cfg_if!(
         if #[cfg(unix)] {

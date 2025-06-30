@@ -1,2 +1,2 @@
 mod hash_writer;
-pub use hash_writer::{HashWriter, Sha256HashWriter};
+pub use hash_writer::Sha256HashWriter;
