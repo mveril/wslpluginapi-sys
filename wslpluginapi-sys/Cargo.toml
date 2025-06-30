@@ -26,7 +26,6 @@ hex = "0.4"
 cow-utils = { version = "0.1" }
 
 [dependencies]
-hex = "0.4.3"
 libc = "0.2"
 struct-field-names-as-array = { version = "0.3", features = [
   "derive",
