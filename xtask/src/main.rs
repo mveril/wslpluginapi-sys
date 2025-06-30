@@ -117,7 +117,7 @@ fn process_package(
         let build_path = &package_path.join("build");
         fs::create_dir_all(build_path)?;
         File::create(build_path.join(".gitattributes"))?.write_all("* -text".as_bytes())?;
-        let mut checksum_file = fs::File::create(build_path.join("checksum.sha256"))?;
+        let mut checksum_file = File::create(build_path.join("checksum.sha256"))?;
         let metadata_path = &build_path.join("metadata.json");
         let out_path = build_path.join(WSL_PLUGIN_API_OUTPUT_FILE_NAME);
         {
@@ -131,7 +131,7 @@ fn process_package(
                 out_path.strip_prefix(build_path)?.as_str(),
                 llvm_target,
             );
-            let mut hash_writer = Sha256HashWriter::new(fs::File::create(metadata_path)?);
+            let mut hash_writer = Sha256HashWriter::new(File::create(metadata_path)?);
             metadata.write(&mut hash_writer)?;
             writeln!(
                 checksum_file,
@@ -178,7 +178,7 @@ fn get_nuspec_from_nupkg(
         "{}.{}.nupkg",
         nuget_package_name, nuget_package_version
     ));
-    let zip_file = fs::File::open(&nupkg_file)?;
+    let zip_file = File::open(&nupkg_file)?;
     let mut archive = ZipArchive::new(zip_file)?;
     trace!("ZIP archive opened with {} files", archive.len());
     match archive.by_name(&nuspec_name) {
