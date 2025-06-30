@@ -31,7 +31,6 @@ impl ParseCallbacks for BindgenCallback {
         }
     }
 }
-
 #[cfg(unix)]
 fn preprocess_header<'a, P: 'a + AsRef<Path>>(
     header_path: &'a P,
