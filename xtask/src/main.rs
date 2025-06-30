@@ -96,9 +96,7 @@ fn process_package(
     }
 
     let nuget_package_name = "Microsoft.WSL.PluginApi";
-    debug!(
-        "Ensuring NuGet package installed: {nuget_package_name} @ {nuget_package_version}"
-    );
+    debug!("Ensuring NuGet package installed: {nuget_package_name} @ {nuget_package_version}");
 
     let nuget_pkg_path = ensure_package_installed(
         nuget_package_name,

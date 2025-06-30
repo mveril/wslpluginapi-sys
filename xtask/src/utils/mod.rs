@@ -35,9 +35,9 @@ pub fn format_with_rustfmt<W: Write>(
 
     let status = child.wait()?;
     if !status.success() {
-        Err(io::Error::other(
-            format!("rustfmt exited with status {status}"),
-        ))
+        Err(io::Error::other(format!(
+            "rustfmt exited with status {status}"
+        )))
     } else {
         Ok(())
     }

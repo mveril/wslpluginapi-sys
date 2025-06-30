@@ -52,9 +52,7 @@ pub(crate) fn ensure_package_installed<P: AsRef<Path>, S: AsRef<str>>(
         }
         Mode::TryNuget => {
             if let Err(e) = install_with_nuget_cli(package_name, package_version, &package_dir) {
-                println!(
-                    "NuGet CLI failed: {e}. Falling back to manual download..."
-                );
+                println!("NuGet CLI failed: {e}. Falling back to manual download...");
                 download_and_extract(package_name, package_version, &package_output)?;
             }
         }
@@ -89,9 +87,8 @@ fn download_and_extract(
     package_version: &str,
     package_output: &Path,
 ) -> Result<()> {
-    let package_url = format!(
-        "https://www.nuget.org/api/v2/package/{package_name}/{package_version}"
-    );
+    let package_url =
+        format!("https://www.nuget.org/api/v2/package/{package_name}/{package_version}");
     println!("Downloading NuGet package from: {package_url}");
 
     let mut response = get(&package_url)?.error_for_status()?;
