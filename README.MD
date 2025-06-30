@@ -35,7 +35,8 @@ This crate provides unsafe bindings that closely follow the original C API. User
 
 ## NuGet package dependency
 
-This project depends on a third-party dependency called [Microsoft.WSL.PluginApi](https://www.nuget.org/packages/Microsoft.WSL.PluginApi) from Microsoft, available on NuGet and providing bindings for it. To upgrade it, change the version build metadata of the project and run `cargo xtask bindgen` (don't forget to commit changes generated from the xtask). This xtask extracts all the needed content from the NuGet package. For more info see `THIRD-PARTY-NOTICES.md`
+This project depends on a third-party dependency called [Microsoft.WSL.PluginApi](https://www.nuget.org/packages/Microsoft.WSL.PluginApi) from Microsoft, available on NuGet and providing bindings for it. To upgrade it, change the version build metadata of the project and run `cargo xtask bindgen` (don't forget to commit changes generated from the xtask). This xtask download the nuget package and run bindgen on the header to compute a rust file used as binding. This allow offline build with no need of the windows header at build time. All the output of this task is added to a `build` folder that need to be commit This folder contain a metadata file and a checksum file.
+The information of this metadata file and checksum file are used at build time to detect the path of the binding and check the integrity (corect checksum and version correspondance).
 
 ## License
 
