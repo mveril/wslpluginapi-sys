@@ -14,7 +14,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 pub struct Metadata {
-    pub version: String,
+    pub header_version: String,
     pub output_file_path: String,
 }
 
@@ -78,10 +78,10 @@ fn main() -> anyhow::Result<()> {
         let json: Metadata = serde_json::from_reader(file).unwrap();
         json
     };
-    if json_metadata.version != expected_nuget_version {
+    if json_metadata.header_version != expected_nuget_version {
         panic!(
             "Version mismatch: metadata.json version '{}' does not match package metadata '{}'",
-            &json_metadata.version, expected_nuget_version
+            &json_metadata.header_version, expected_nuget_version
         );
     }
     let output_full_path = build.join(json_metadata.output_file_path);

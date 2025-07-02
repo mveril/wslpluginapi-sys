@@ -4,23 +4,24 @@ use std::io::Write;
 #[derive(Serialize, Debug)]
 pub struct Metadata {
     pub id: String,
-    pub version: String,
+    pub xtask_version: String,
+    pub header_version: String,
     pub header_file_path: String,
     pub output_file_path: String,
     pub bindgen: BindgenMetadata,
 }
 
 impl Metadata {
-    pub fn new<Id, Ver, Header, Output, Target>(
+    pub fn new<Id, HVer, Header, Output, Target>(
         id: Id,
-        version: Ver,
+        header_version: HVer,
         header_file_path: Header,
         output_file_path: Output,
         custom_llvm_target: Option<Target>,
     ) -> Self
     where
         Id: Into<String>,
-        Ver: Into<String>,
+        HVer: Into<String>,
         Header: Into<String>,
         Output: Into<String>,
         Target: Into<String>,
@@ -28,7 +29,8 @@ impl Metadata {
         let custom_llvm_target = custom_llvm_target.map(|t| t.into());
         Self {
             id: id.into(),
-            version: version.into(),
+            xtask_version: env!("CARGO_PKG_VERSION").into(),
+            header_version: header_version.into(),
             header_file_path: header_file_path.into(),
             output_file_path: output_file_path.into(),
             bindgen: BindgenMetadata::new(custom_llvm_target),
