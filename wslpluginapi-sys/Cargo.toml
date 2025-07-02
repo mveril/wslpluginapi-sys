@@ -6,7 +6,6 @@ readme.workspace = true
 authors.workspace = true
 description.workspace = true
 license.workspace = true
-publish-lockfile = false
 repository.workspace = true
 keywords = ["wsl", "plugin", "windows", "linux", "ffi"]
 categories = ["os::windows-apis", "external-ffi-bindings", "virtualization"]
