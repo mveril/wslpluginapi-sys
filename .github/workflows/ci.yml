@@ -117,7 +117,7 @@ jobs:
           echo "CARGO_TARGET_${trple}_AR=${{ matrix.target.ar }}" >> $GITHUB_ENV
 
       - name: Build Project for target ${{ matrix.target.triple }}
-        run: cargo build --workspace --target=${{ matrix.target.triple }} --all-features --release
+        run: cargo build--target=${{ matrix.target.triple }} --all-features --release
 
       - name: Run doc
         run: cargo doc --target=${{ matrix.target.triple }} --no-deps --all-features
