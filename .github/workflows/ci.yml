@@ -63,10 +63,10 @@ jobs:
         run: cargo fmt -- --check
 
       - name: Build the Project
-        run: cargo build --all-features --verbose
+        run: cargo build --workspace --all-features --verbose
 
       - name: Run Tests
-        run: cargo test --all-features --verbose
+        run: cargo test --workspace --all-features --verbose
 
       - name: Generate Documentation (${{ matrix.DOCTYPE }}, ${{ matrix.toolchain }})
         run: cargo doc --no-deps --all-features
@@ -108,13 +108,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang llvm mingw-w64
 
+      - name: Ensure xtask compilable and runable on Linux
+        run: cargo xtask --version
+
       - name: Set up environment for Windows cross-compilation
         shell: bash
         run: |
-          var_name=$(echo "${{ matrix.target.triple }}" | tr '-' '_' | tr '[:lower:]' '[:upper:]')
+          trple=$(echo "${{ matrix.target.triple }}" | tr '-' '_' | tr '[:lower:]' '[:upper:]')
           echo "Setting CARGO_TARGET_${var_name}_LINKER=${{ matrix.target.linker }}"
-          echo "CARGO_TARGET_${var_name}_LINKER=${{ matrix.target.linker }}" >> $GITHUB_ENV
-          echo "CARGO_TARGET_${var_name}_AR=${{ matrix.target.ar }}" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${trple}_LINKER=${{ matrix.target.linker }}" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${trple}_AR=${{ matrix.target.ar }}" >> $GITHUB_ENV
 
       - name: Build Project for target ${{ matrix.target.triple }}
         run: cargo build --target=${{ matrix.target.triple }} --all-features --release
