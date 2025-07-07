@@ -1,5 +1,4 @@
 use anyhow::Result;
-use reqwest::blocking::get;
 use std::fs;
 use std::io;
 use std::io::Seek;
@@ -7,6 +6,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::ExitStatus;
+use ureq::get;
 use zip::ZipArchive;
 
 #[allow(dead_code)]
@@ -91,8 +91,7 @@ fn download_and_extract(
     let package_url =
         format!("https://www.nuget.org/api/v2/package/{package_name}/{package_version}");
     println!("Downloading NuGet package from: {package_url}");
-
-    let mut response = get(&package_url)?;
+    let response = get(&package_url).call()?;
     fs::create_dir_all(package_output)?;
     let mut nuget_pkg_file = fs::OpenOptions::new()
         .create(true)
@@ -100,7 +99,7 @@ fn download_and_extract(
         .read(true)
         .truncate(true)
         .open(package_output.join(format!("{package_name}.{package_version}.nupkg")))?;
-    response.copy_to(&mut nuget_pkg_file)?;
+    io::copy(&mut response.into_body().into_reader(), &mut nuget_pkg_file)?;
     nuget_pkg_file.seek(io::SeekFrom::Start(0))?;
     let mut archive = ZipArchive::new(nuget_pkg_file)?;
     println!("Extracting NuGet package to: {package_output:?}");
