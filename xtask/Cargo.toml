@@ -1,4 +1,5 @@
 [package]
+license.workspace = true
 version.workspace = true
 name = "xtask"
 edition = "2024"
