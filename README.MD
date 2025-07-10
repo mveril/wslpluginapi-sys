@@ -50,6 +50,6 @@ To run this command you require the following dependencies
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is Licensed under either MIT or Apache-2.0, at your option. See the LICENSE file for details.
 
 Note: This crate is part of the [WSLPlugins-rs](https://github.com/mveril/wslplugins-rs) project, which aims to create an idiomatic Rust framework for developing WSL plugins.
