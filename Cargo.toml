@@ -10,5 +10,5 @@ edition = "2021"
 readme = "README.md"
 authors = ["Mickaël Véril <mika.veril@wanadoo.fr>"]
 description = "Rust bindings for the WSL Plugin API"
-license = "Apache-2.0 OR MITMIT"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/mveril/wslpluginapi-sys"
