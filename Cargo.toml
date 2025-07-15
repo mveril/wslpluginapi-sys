@@ -5,11 +5,10 @@ default-members = ["wslpluginapi-sys"]
 
 
 [workspace.package]
-name = "wslpluginapi-sys"
-version = "0.1.0-beta.5.1+2.4.4"
+version = "0.1.0-rc.1+2.4.4"
 edition = "2021"
 readme = "README.md"
 authors = ["Mickaël Véril <mika.veril@wanadoo.fr>"]
 description = "Rust bindings for the WSL Plugin API"
-license = "MIT"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/mveril/wslpluginapi-sys"

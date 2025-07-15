@@ -1,0 +1,74 @@
+use serde::Serialize;
+use std::io::Write;
+
+#[derive(Serialize, Debug)]
+pub struct Metadata {
+    pub id: String,
+    pub xtask_version: String,
+    pub header_version: String,
+    pub header_file_path: String,
+    pub output_file_path: String,
+    pub bindgen: BindgenMetadata,
+}
+
+impl Metadata {
+    pub fn new<Id, HVer, Header, Output, Target>(
+        id: Id,
+        header_version: HVer,
+        header_file_path: Header,
+        output_file_path: Output,
+        custom_llvm_target: Option<Target>,
+    ) -> Self
+    where
+        Id: Into<String>,
+        HVer: Into<String>,
+        Header: Into<String>,
+        Output: Into<String>,
+        Target: Into<String>,
+    {
+        let custom_llvm_target = custom_llvm_target.map(|t| t.into());
+        Self {
+            id: id.into(),
+            xtask_version: env!("CARGO_PKG_VERSION").into(),
+            header_version: header_version.into(),
+            header_file_path: header_file_path.into(),
+            output_file_path: output_file_path.into(),
+            bindgen: BindgenMetadata::new(custom_llvm_target),
+        }
+    }
+
+    pub fn write<W: Write>(&self, writer: &mut W) -> serde_json::Result<()> {
+        serde_json::to_writer_pretty(writer, &self)
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct BindgenMetadata {
+    pub bindgen_version: String,
+    pub custom_llvm_target: Option<String>,
+    pub build_host: BuildMachine,
+}
+impl BindgenMetadata {
+    fn new(custom_llvm_target: Option<String>) -> Self {
+        Self {
+            bindgen_version: env!("BINDGEN_VERSION").to_string(),
+            custom_llvm_target,
+            build_host: BuildMachine::default(),
+        }
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct BuildMachine {
+    pub os: String,
+    pub arch: String,
+}
+
+impl Default for BuildMachine {
+    fn default() -> Self {
+        BuildMachine {
+            os: std::env::consts::OS.to_string(),
+            arch: std::env::consts::ARCH.to_string(),
+        }
+    }
+}

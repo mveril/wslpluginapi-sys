@@ -17,12 +17,8 @@
 ## Prerequisites
 
 Before using `wslpluginapi-sys`, ensure you have the following installed:
-
 - **Rust**: Latest stable version.
 
-### Optional
-
-- **NuGet**: Use the NuGet CLI in the xtask nuget process to download NuGet (if not present, we use reqwest to do this process).
 
 ## Installation
 
@@ -39,10 +35,21 @@ This crate provides unsafe bindings that closely follow the original C API. User
 
 ## NuGet package dependency
 
-This project depends on a third-party dependency called [Microsoft.WSL.PluginApi](https://www.nuget.org/packages/Microsoft.WSL.PluginApi) from Microsoft, available on NuGet and providing bindings for it. To upgrade it, change the version build metadata of the project and run `cargo xtask nuget` (don't forget to commit changes generated from the xtask). This xtask extracts all the needed content from the NuGet package. For more info see `THIRD-PARTY-NOTICES.md`
+This project depends on a third-party dependency called [Microsoft.WSL.PluginApi](https://www.nuget.org/packages/Microsoft.WSL.PluginApi) from Microsoft, available on NuGet and providing bindings for it. 
+## xtask bindgen
+To upgrade it, change the version build metadata of the project to the target `Microsoft.WSL.PluginApi` version and run `cargo xtask bindgen` (don't forget to commit changes generated from the xtask). This xtask download the nuget package and run bindgen on the header to compute a rust file used as binding. This allow offline build with no need of the windows header at build time. All the output of this task is added to a `build` folder that need to be commit This folder contain a metadata file and a checksum file.
+The information of this metadata file and checksum file are used at build time to detect the path of the binding and check the integrity (corect checksum and version correspondance).
+
+### Requirement
+
+To run this command you require the following dependencies
+- llvm
+- rustfmt (from rustup)
+- Nuget CLI
+
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is Licensed under either MIT or Apache-2.0, at your option. See the LICENSE file for details.
 
 Note: This crate is part of the [WSLPlugins-rs](https://github.com/mveril/wslplugins-rs) project, which aims to create an idiomatic Rust framework for developing WSL plugins.

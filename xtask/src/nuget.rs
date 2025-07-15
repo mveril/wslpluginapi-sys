@@ -1,11 +1,12 @@
 use anyhow::Result;
-use reqwest::blocking::get;
 use std::fs;
+use std::io;
+use std::io::Seek;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::ExitStatus;
-use tempfile::NamedTempFile;
+use ureq::get;
 use zip::ZipArchive;
 
 #[allow(dead_code)]
@@ -39,7 +40,7 @@ pub(crate) fn ensure_package_installed<P: AsRef<Path>, S: AsRef<str>>(
     let package_name = package_name.as_ref();
     let package_version = package_version.as_ref();
     let package_dir = out_dir.join(LOCAL_NUGET_FOLDER);
-    let package_output = package_dir.join(format!("{}.{}", package_name, package_version));
+    let package_output = package_dir.join(format!("{package_name}.{package_version}"));
 
     fs::create_dir_all(&package_dir)?;
 
@@ -52,16 +53,13 @@ pub(crate) fn ensure_package_installed<P: AsRef<Path>, S: AsRef<str>>(
         }
         Mode::TryNuget => {
             if let Err(e) = install_with_nuget_cli(package_name, package_version, &package_dir) {
-                println!(
-                    "NuGet CLI failed: {}. Falling back to manual download...",
-                    e
-                );
+                println!("NuGet CLI failed: {e}. Falling back to manual download...");
                 download_and_extract(package_name, package_version, &package_output)?;
             }
         }
     }
 
-    println!("NuGet package installed successfully: {:?}", package_output);
+    println!("NuGet package installed successfully: {package_output:?}");
     Ok(package_output)
 }
 
@@ -90,21 +88,21 @@ fn download_and_extract(
     package_version: &str,
     package_output: &Path,
 ) -> Result<()> {
-    let package_url = format!(
-        "https://www.nuget.org/api/v2/package/{}/{}",
-        package_name, package_version
-    );
-    println!("Downloading NuGet package from: {}", package_url);
-
-    let mut response = get(&package_url)?.error_for_status()?;
-
-    let mut temp_file = NamedTempFile::new()?;
-    response.copy_to(&mut temp_file)?;
-
-    let zip_file = fs::File::open(temp_file.path())?;
-    let mut archive = ZipArchive::new(zip_file)?;
-    println!("Extracting NuGet package to: {:?}", package_output);
+    let package_url =
+        format!("https://www.nuget.org/api/v2/package/{package_name}/{package_version}");
+    println!("Downloading NuGet package from: {package_url}");
+    let response = get(&package_url).call()?;
+    fs::create_dir_all(package_output)?;
+    let mut nuget_pkg_file = fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .read(true)
+        .truncate(true)
+        .open(package_output.join(format!("{package_name}.{package_version}.nupkg")))?;
+    io::copy(&mut response.into_body().into_reader(), &mut nuget_pkg_file)?;
+    nuget_pkg_file.seek(io::SeekFrom::Start(0))?;
+    let mut archive = ZipArchive::new(nuget_pkg_file)?;
+    println!("Extracting NuGet package to: {package_output:?}");
     archive.extract(package_output)?;
-
     Ok(())
 }
