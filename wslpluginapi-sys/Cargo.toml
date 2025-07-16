@@ -30,11 +30,10 @@ struct-field-names-as-array = { version = "0.3", features = [
   "derive",
 ], optional = true }
 
-[dependencies.windows]
+[dependencies.windows-sys]
 version = ">0.32"
 features = [
   "Win32_Foundation",
-  "Win32_Security",
   "Win32_System_Diagnostics_Debug",
   "Win32_Networking_WinSock",
 ]

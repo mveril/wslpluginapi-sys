@@ -54,10 +54,9 @@ pub(crate) fn process<P: AsRef<Path>>(
     target: Option<&str>,
 ) -> anyhow::Result<bindgen::Bindings> {
     let mut builder = bindgen::Builder::default()
-        .raw_line("use windows::core::*;")
-        .raw_line("use windows::Win32::Foundation::*;")
-        .raw_line("use windows::Win32::Security::*;")
-        .raw_line("use windows::Win32::Networking::WinSock::SOCKET;")
+        .raw_line("use windows_sys::core::*;")
+        .raw_line("use windows_sys::Win32::Foundation::*;")
+        .raw_line("use windows_sys::Win32::Networking::WinSock::SOCKET;")
         .raw_line("#[allow(clippy::upper_case_acronyms)] type LPCWSTR = PCWSTR;")
         .raw_line("#[allow(clippy::upper_case_acronyms)] type LPCSTR = PCSTR;")
         .raw_line("#[allow(clippy::upper_case_acronyms)] type DWORD = u32;")
