@@ -56,6 +56,7 @@ pub(crate) fn process<P: AsRef<Path>>(
     let mut builder = bindgen::Builder::default()
         .raw_line("use windows_sys::core::*;")
         .raw_line("use windows_sys::Win32::Foundation::*;")
+        .raw_line("#[allow(clippy::unused_imports)]")
         .raw_line("use windows_sys::Win32::Security::*;")
         .raw_line("use windows_sys::Win32::Networking::WinSock::SOCKET;")
         .raw_line("#[allow(clippy::upper_case_acronyms)] type LPCWSTR = PCWSTR;")
