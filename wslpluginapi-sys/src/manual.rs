@@ -1,11 +1,11 @@
 use crate::WSLPluginAPIV1;
-use windows::core::HRESULT;
-use windows::Win32::Foundation::{SEVERITY_ERROR, S_OK};
-use windows::Win32::System::Diagnostics::Debug::{FACILITY_CODE, FACILITY_ITF};
+use windows_sys::core::HRESULT;
+use windows_sys::Win32::Foundation::{SEVERITY_ERROR, S_OK};
+use windows_sys::Win32::System::Diagnostics::Debug::{FACILITY_CODE, FACILITY_ITF};
 
 #[inline(always)]
 const fn make_hresult(severity: u32, facility: FACILITY_CODE, code: u32) -> HRESULT {
-    HRESULT(((severity << 31) | (facility.0 << 16) | code) as i32)
+    ((severity << 31) | (facility << 16) | code) as HRESULT
 }
 
 pub const WSL_E_PLUGIN_REQUIRES_UPDATE: HRESULT =
@@ -60,7 +60,7 @@ pub const unsafe fn require_version(
 mod tests {
     use super::*;
     use crate::{WSLPluginAPIV1, WSLVersion};
-    use windows::Win32::Foundation::S_OK;
+    use windows_sys::Win32::Foundation::S_OK;
 
     #[test]
     fn test_version_exact_match() {
