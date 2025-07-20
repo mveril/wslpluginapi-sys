@@ -3,7 +3,7 @@
 use windows_sys::core::*;
 use windows_sys::Win32::Foundation::*;
 use windows_sys::Win32::Networking::WinSock::SOCKET;
-#[allow(clippy::unused_imports)]
+#[allow(unused_imports)]
 use windows_sys::Win32::Security::*;
 #[allow(clippy::upper_case_acronyms)]
 type LPCWSTR = PCWSTR;
