@@ -12,6 +12,9 @@ categories = ["os::windows-apis", "external-ffi-bindings", "virtualization"]
 
 [features]
 hooks-field-names = ["dep:struct-field-names-as-array"]
+"Windows_Win32_Security_Authorization" = [
+  "windows-sys/Win32_Security_Authorization",
+]
 
 [build-dependencies]
 serde_json = "1.0"
