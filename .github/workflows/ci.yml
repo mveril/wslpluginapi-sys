@@ -75,7 +75,7 @@ jobs:
         if: matrix.toolchain == 'nightly'
         run: |
           cargo install cargo-deny
-          cargo deny check --workspace
+          cargo deny check
 
   cross-compile:
     name: "Cross Compilation for Windows targets on Linux (x86_64 only)"
