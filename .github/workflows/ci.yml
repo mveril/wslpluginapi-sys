@@ -74,8 +74,8 @@ jobs:
       - name: Install and Run Security Audit (Nightly Only)
         if: matrix.toolchain == 'nightly'
         run: |
-          cargo install cargo-audit
-          cargo audit
+          cargo install cargo-deny
+          cargo deny check
 
   cross-compile:
     name: "Cross Compilation for Windows targets on Linux (x86_64 only)"
