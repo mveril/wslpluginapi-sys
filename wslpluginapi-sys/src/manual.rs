@@ -8,6 +8,7 @@ const fn make_hresult(severity: u32, facility: FACILITY_CODE, code: u32) -> HRES
     ((severity << 31) | (facility << 16) | code) as HRESULT
 }
 
+/// Error code indicating that the WSL version is too low and requires an update for this specific plugin API.
 pub const WSL_E_PLUGIN_REQUIRES_UPDATE: HRESULT =
     make_hresult(SEVERITY_ERROR, FACILITY_ITF, 0x8004032A);
 
@@ -23,17 +24,17 @@ pub const WSL_E_PLUGIN_REQUIRES_UPDATE: HRESULT =
 /// - `required_major`: The major version number required by the plugin.
 /// - `required_minor`: The minor version number required by the plugin.
 /// - `required_revision`: The revision number required by the plugin.
-/// - `api`: A pointer to the `WSLPluginAPIV1` structure, containing the current API version.
+/// - `api`: A raw pointer to a [`WSLPluginAPIV1`] structure, containing the current API version.
 ///
 /// # Returns
 ///
-/// - `S_OK`: If the API version meets or exceeds the required version.
-/// - `WSL_E_PLUGIN_REQUIRES_UPDATE`: If the API version is below the required minimum.
+/// - [`S_OK`]: If the API version meets or exceeds the required version.
+/// - [`WSL_E_PLUGIN_REQUIRES_UPDATE`]: If the API version is below the required minimum.
 ///
 /// # Safety
 ///
 /// This function is `unsafe` because it dereferences a raw pointer (`api`). The caller must
-/// ensure that the pointer is valid and points to a properly initialized `WSLPluginAPIV1`
+/// ensure that the pointer is valid and points to a properly initialized [`WSLPluginAPIV1`]
 /// structure.
 #[inline(always)]
 pub const unsafe fn require_version(
