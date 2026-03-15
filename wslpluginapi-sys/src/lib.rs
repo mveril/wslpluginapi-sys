@@ -1,4 +1,4 @@
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 mod bindgen;
 mod manual;
 /// Re-export the [windows_sys] crate for use in higher-level crates
