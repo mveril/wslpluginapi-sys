@@ -134,7 +134,8 @@ jobs:
               $rawVersion = $tagName -replace '^v', ''
               echo "version=$rawVersion" >> $env:GITHUB_ENV
               $Version = [PSSemVer]::Parse($rawVersion)
-              $prereleaseValue = ($Version.Prerelease -ne $null).ToString().ToLower()
+              $hasPrerelease = -not [string]::IsNullOrWhiteSpace([string]$Version.Prerelease)
+              $prereleaseValue = $hasPrerelease.ToString().ToLower()
               echo "prerelease=$prereleaseValue" >> $env:GITHUB_ENV
               if (-not [string]::IsNullOrEmpty($Version.BuildMetadata)) {
                 echo "nuget_version=$($Version.BuildMetadata)" >> $env:GITHUB_ENV
