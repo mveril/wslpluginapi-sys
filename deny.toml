@@ -2,8 +2,98 @@
 all-features = true
 
 [licenses]
-allow = ["MIT", "Apache-2.0"]
+exceptions = [
+  { allow = [
+    "BSD-3-Clause",
+  ], crate = "bindgen" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "icu_collections" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "icu_locale_core" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "icu_normalizer" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "icu_normalizer_data" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "icu_properties" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "icu_properties_data" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "icu_provider" },
+  { allow = [
+    "bzip2-1.0.6",
+  ], crate = "libbz2-rs-sys" },
+  { allow = [
+    "ISC",
+  ], crate = "libloading" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "litemap" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "potential_utf" },
+  { allow = [
+    "CC0-1.0",
+    "MIT-0",
+  ], crate = "ppmd-rust" },
+  { allow = [
+    "ISC",
+  ], crate = "ring" },
+  { allow = [
+    "ISC",
+  ], crate = "rustls-webpki" },
+  { allow = [
+    "BSD-3-Clause",
+  ], crate = "subtle" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "tinystr" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "unicode-ident" },
+  { allow = [
+    "ISC",
+  ], crate = "untrusted" },
+  { allow = [
+    "CDLA-Permissive-2.0",
+  ], crate = "webpki-roots" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "writeable" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "yoke" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "yoke-derive" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "zerofrom" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "zerofrom-derive" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "zerotrie" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "zerovec" },
+  { allow = [
+    "Unicode-3.0",
+  ], crate = "zerovec-derive" },
+  { allow = [
+    "Zlib",
+  ], crate = "zlib-rs" },
+]
 
+allow = ["MIT", "Apache-2.0"]
 [bans]
 multiple-versions = "allow"
 wildcards = "deny"
@@ -11,4 +101,3 @@ wildcards = "deny"
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-allow-git = ["https://github.com/mveril/wslpluginapi-sys"]
