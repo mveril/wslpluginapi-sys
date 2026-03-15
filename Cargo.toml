@@ -5,7 +5,7 @@ default-members = ["wslpluginapi-sys"]
 
 
 [workspace.package]
-version = "0.1.0-rc.1+2.4.4"
+version = "0.2.0+2.4.4"
 edition = "2021"
 readme = "README.md"
 authors = ["Mickaël Véril <mika.veril@wanadoo.fr>"]

@@ -1,13 +1,14 @@
 use crate::WSLPluginAPIV1;
-use windows::core::HRESULT;
-use windows::Win32::Foundation::{SEVERITY_ERROR, S_OK};
-use windows::Win32::System::Diagnostics::Debug::{FACILITY_CODE, FACILITY_ITF};
+use windows_sys::core::HRESULT;
+use windows_sys::Win32::Foundation::{SEVERITY_ERROR, S_OK};
+use windows_sys::Win32::System::Diagnostics::Debug::{FACILITY_CODE, FACILITY_ITF};
 
 #[inline(always)]
 const fn make_hresult(severity: u32, facility: FACILITY_CODE, code: u32) -> HRESULT {
-    HRESULT(((severity << 31) | (facility.0 << 16) | code) as i32)
+    ((severity << 31) | (facility << 16) | code) as HRESULT
 }
 
+/// Error code indicating that the WSL version is too low and requires an update for this specific plugin API.
 pub const WSL_E_PLUGIN_REQUIRES_UPDATE: HRESULT =
     make_hresult(SEVERITY_ERROR, FACILITY_ITF, 0x8004032A);
 
@@ -23,17 +24,17 @@ pub const WSL_E_PLUGIN_REQUIRES_UPDATE: HRESULT =
 /// - `required_major`: The major version number required by the plugin.
 /// - `required_minor`: The minor version number required by the plugin.
 /// - `required_revision`: The revision number required by the plugin.
-/// - `api`: A pointer to the `WSLPluginAPIV1` structure, containing the current API version.
+/// - `api`: A raw pointer to a [`WSLPluginAPIV1`] structure, containing the current API version.
 ///
 /// # Returns
 ///
-/// - `S_OK`: If the API version meets or exceeds the required version.
-/// - `WSL_E_PLUGIN_REQUIRES_UPDATE`: If the API version is below the required minimum.
+/// - [`S_OK`]: If the API version meets or exceeds the required version.
+/// - [`WSL_E_PLUGIN_REQUIRES_UPDATE`]: If the API version is below the required minimum.
 ///
 /// # Safety
 ///
 /// This function is `unsafe` because it dereferences a raw pointer (`api`). The caller must
-/// ensure that the pointer is valid and points to a properly initialized `WSLPluginAPIV1`
+/// ensure that the pointer is valid and points to a properly initialized [`WSLPluginAPIV1`]
 /// structure.
 #[inline(always)]
 pub const unsafe fn require_version(
@@ -60,7 +61,7 @@ pub const unsafe fn require_version(
 mod tests {
     use super::*;
     use crate::{WSLPluginAPIV1, WSLVersion};
-    use windows::Win32::Foundation::S_OK;
+    use windows_sys::Win32::Foundation::S_OK;
 
     #[test]
     fn test_version_exact_match() {
