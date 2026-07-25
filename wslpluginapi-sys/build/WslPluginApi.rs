@@ -161,7 +161,10 @@ const _: () = {
 };
 #[doc = " Opaque handle to a WSLC process created via WSLCPluginAPI_CreateProcess.\n Must be released with WSLCPluginAPI_ReleaseProcess."]
 pub type WSLCProcessHandle = *mut ::std::os::raw::c_void;
-pub use self::_WSLCProcessFd as WSLCProcessFd;
+pub const WSLCProcessFd_WSLCProcessFdStdin: WSLCProcessFd = 0;
+pub const WSLCProcessFd_WSLCProcessFdStdout: WSLCProcessFd = 1;
+pub const WSLCProcessFd_WSLCProcessFdStderr: WSLCProcessFd = 2;
+pub type WSLCProcessFd = ::std::os::raw::c_int;
 #[doc = " Create plan9 mount between Windows & Linux"]
 pub type WSLPluginAPI_MountFolder = ::std::option::Option<
     unsafe extern "C" fn(
