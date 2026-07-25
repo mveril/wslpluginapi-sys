@@ -16,15 +16,6 @@ impl ParseCallbacks for BindgenCallback {
         (item_info.name == "_WSLCProcessFd").then(|| "WSLCProcessFd".into())
     }
 
-    fn enum_variant_name(
-        &self,
-        enum_name: Option<&str>,
-        original_variant_name: &str,
-        _: EnumVariantValue,
-    ) -> Option<String> {
-        (enum_name == Some("_WSLCProcessFd")).then(|| original_variant_name.into())
-    }
-
     fn add_derives(&self, info: &bindgen::callbacks::DeriveInfo<'_>) -> Vec<String> {
         if info.kind == TypeKind::Struct && info.name == "WSLVersion" {
             ["Eq", "PartialEq", "Ord", "PartialOrd", "Hash"]
