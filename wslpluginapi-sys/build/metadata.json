@@ -1,7 +1,7 @@
 {
   "id": "Microsoft.WSL.PluginApi",
-  "xtask_version": "0.2.0+2.4.4",
-  "header_version": "2.4.4",
+  "xtask_version": "0.3.0+2.9.3",
+  "header_version": "2.9.3",
   "header_file_path": "build\\native\\include\\WslPluginApi.h",
   "output_file_path": "WslPluginApi.rs",
   "bindgen": {
