@@ -1,4 +1,4 @@
-use bindgen::callbacks::{ParseCallbacks, TypeKind};
+use bindgen::callbacks::{EnumVariantValue, ItemInfo, ParseCallbacks, TypeKind};
 use cfg_if::cfg_if;
 #[cfg(unix)]
 use cow_utils::CowUtils;
@@ -12,6 +12,19 @@ struct BindgenCallback;
 impl BindgenCallback {}
 
 impl ParseCallbacks for BindgenCallback {
+    fn item_name(&self, item_info: ItemInfo<'_>) -> Option<String> {
+        (item_info.name == "_WSLCProcessFd").then(|| "WSLCProcessFd".into())
+    }
+
+    fn enum_variant_name(
+        &self,
+        enum_name: Option<&str>,
+        original_variant_name: &str,
+        _: EnumVariantValue,
+    ) -> Option<String> {
+        (enum_name == Some("_WSLCProcessFd")).then(|| original_variant_name.into())
+    }
+
     fn add_derives(&self, info: &bindgen::callbacks::DeriveInfo<'_>) -> Vec<String> {
         if info.kind == TypeKind::Struct && info.name == "WSLVersion" {
             ["Eq", "PartialEq", "Ord", "PartialOrd", "Hash"]
@@ -65,6 +78,14 @@ pub(crate) fn process<P: AsRef<Path>>(
         .raw_line(r#"#[cfg(feature = "hooks-field-names")]"#)
         .raw_line("use struct_field_names_as_array::FieldNamesAsSlice;")
         .allowlist_item("WSL.*")
+        // The C API uses tagged declarations such as `enum _WSLCProcessFd`
+        // behind public `WSL...` typedefs. Keep those backing types so the
+        // generated public aliases never refer to an omitted item.
+        .allowlist_item("_WSL.*")
+        // `WSLCProcessFd` is the public typedef for `_WSLCProcessFd`. The
+        // callback above gives the tag the public Rust name, so omit the
+        // redundant typedef and avoid exposing the C implementation name.
+        .blocklist_item("^WSLCProcessFd$")
         .formatter(bindgen::Formatter::Rustfmt)
         .allowlist_item("Wsl.*")
         .clang_arg("-fparse-all-comments")
