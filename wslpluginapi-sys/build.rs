@@ -61,10 +61,10 @@ fn main() -> anyhow::Result<()> {
 
         let mem_hash = hash_file
             .get(path_str)
-            .unwrap_or_else(|| panic!("No hash in the checksum file for {}", &path_str));
+            .unwrap_or_else(|| panic!("No hash in the checksum file for {}", path_str));
 
         if hex::encode(hash) != mem_hash.as_ref() {
-            panic!("Hash not ok for file {}", &path_str);
+            panic!("Hash not ok for file {}", path_str);
         }
     }
 
@@ -81,7 +81,7 @@ fn main() -> anyhow::Result<()> {
     if json_metadata.header_version != expected_nuget_version {
         panic!(
             "Version mismatch: metadata.json version '{}' does not match package metadata '{}'",
-            &json_metadata.header_version, expected_nuget_version
+            json_metadata.header_version, expected_nuget_version
         );
     }
     let output_full_path = build.join(json_metadata.output_file_path);

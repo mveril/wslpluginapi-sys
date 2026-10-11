@@ -1,4 +1,4 @@
-use bindgen::callbacks::{EnumVariantValue, ItemInfo, ParseCallbacks, TypeKind};
+use bindgen::callbacks::{ItemInfo, ParseCallbacks, TypeKind};
 use cfg_if::cfg_if;
 #[cfg(unix)]
 use cow_utils::CowUtils;
