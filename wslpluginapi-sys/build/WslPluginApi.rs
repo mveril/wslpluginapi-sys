@@ -69,7 +69,7 @@ const _: () = {
 };
 #[repr(C)]
 pub struct WSLDistributionInformation {
-    #[doc = " Distribution ID, guaranteed to be the same accross reboots"]
+    #[doc = " Distribution ID, guaranteed to be the same across reboots"]
     pub Id: GUID,
     pub Name: LPCWSTR,
     pub PidNamespace: u64,
@@ -77,9 +77,9 @@ pub struct WSLDistributionInformation {
     pub PackageFamilyName: LPCWSTR,
     #[doc = " Pid of the init process. Introduced in 2.0.5"]
     pub InitPid: u32,
-    #[doc = " Type of distribution (ubuntu, debian, ...), introduced in TODO"]
+    #[doc = " Type of distribution (ubuntu, debian, ...). Introduced in 2.4.4"]
     pub Flavor: LPCWSTR,
-    #[doc = " Distribution version, introduced in TODO"]
+    #[doc = " Distribution version. Introduced in 2.4.4"]
     pub Version: LPCWSTR,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -105,14 +105,14 @@ const _: () = {
 };
 #[repr(C)]
 pub struct WslOfflineDistributionInformation {
-    #[doc = " Distribution ID, guaranteed to be the same accross reboots"]
+    #[doc = " Distribution ID, guaranteed to be the same across reboots"]
     pub Id: GUID,
     pub Name: LPCWSTR,
     #[doc = " Package family name, or NULL if none"]
     pub PackageFamilyName: LPCWSTR,
-    #[doc = " Type of distribution (ubuntu, debian, ...), introduced in TODO"]
+    #[doc = " Type of distribution (ubuntu, debian, ...). Introduced in 2.4.4"]
     pub Flavor: LPCWSTR,
-    #[doc = " Distribution version, introduced in TODO"]
+    #[doc = " Distribution version. Introduced in 2.4.4"]
     pub Version: LPCWSTR,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -132,6 +132,39 @@ const _: () = {
     ["Offset of field: WslOfflineDistributionInformation::Version"]
         [::std::mem::offset_of!(WslOfflineDistributionInformation, Version) - 40usize];
 };
+#[doc = " Identifies a WSLC session inside the WSLC plugin API. Distinct from WSLSessionId."]
+pub type WSLCSessionId = DWORD;
+#[doc = " Information about a WSLC session passed to plugin notifications."]
+#[repr(C)]
+pub struct WSLCSessionInformation {
+    pub SessionId: WSLCSessionId,
+    pub DisplayName: LPCWSTR,
+    pub ApplicationPid: DWORD,
+    pub UserToken: HANDLE,
+    pub UserSid: PSID,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of WSLCSessionInformation"][::std::mem::size_of::<WSLCSessionInformation>() - 40usize];
+    ["Alignment of WSLCSessionInformation"]
+        [::std::mem::align_of::<WSLCSessionInformation>() - 8usize];
+    ["Offset of field: WSLCSessionInformation::SessionId"]
+        [::std::mem::offset_of!(WSLCSessionInformation, SessionId) - 0usize];
+    ["Offset of field: WSLCSessionInformation::DisplayName"]
+        [::std::mem::offset_of!(WSLCSessionInformation, DisplayName) - 8usize];
+    ["Offset of field: WSLCSessionInformation::ApplicationPid"]
+        [::std::mem::offset_of!(WSLCSessionInformation, ApplicationPid) - 16usize];
+    ["Offset of field: WSLCSessionInformation::UserToken"]
+        [::std::mem::offset_of!(WSLCSessionInformation, UserToken) - 24usize];
+    ["Offset of field: WSLCSessionInformation::UserSid"]
+        [::std::mem::offset_of!(WSLCSessionInformation, UserSid) - 32usize];
+};
+#[doc = " Opaque handle to a WSLC process created via WSLCPluginAPI_CreateProcess.\n Must be released with WSLCPluginAPI_ReleaseProcess."]
+pub type WSLCProcessHandle = *mut ::std::os::raw::c_void;
+pub const WSLCProcessFd_WSLCProcessFdStdin: WSLCProcessFd = 0;
+pub const WSLCProcessFd_WSLCProcessFdStdout: WSLCProcessFd = 1;
+pub const WSLCProcessFd_WSLCProcessFdStderr: WSLCProcessFd = 2;
+pub type WSLCProcessFd = ::std::os::raw::c_int;
 #[doc = " Create plan9 mount between Windows & Linux"]
 pub type WSLPluginAPI_MountFolder = ::std::option::Option<
     unsafe extern "C" fn(
@@ -151,6 +184,77 @@ pub type WSLPluginAPI_ExecuteBinary = ::std::option::Option<
         Socket: *mut SOCKET,
     ) -> HRESULT,
 >;
+#[doc = " Called when a WSLC session is created. Returning an error prevents the session creation."]
+pub type WSLPluginAPI_OnSessionCreated =
+    ::std::option::Option<unsafe extern "C" fn(Session: *const WSLCSessionInformation) -> HRESULT>;
+#[doc = " Called when a WSLC session is about to stop. Errors are ignored."]
+pub type WSLPluginAPI_OnSessionStopping =
+    ::std::option::Option<unsafe extern "C" fn(Session: *const WSLCSessionInformation) -> HRESULT>;
+#[doc = " Called when a container starts. Returning an error prevents the container creation.\n 'InspectContainer' is a JSON document that follows the wslc_schema::InspectContainer format."]
+pub type WSLPluginAPI_ContainerStarted = ::std::option::Option<
+    unsafe extern "C" fn(
+        Session: *const WSLCSessionInformation,
+        InspectContainer: LPCSTR,
+    ) -> HRESULT,
+>;
+#[doc = " Called when a container is about to stop. 'ContainerId' is the container identifier. Errors are ignored."]
+pub type WSLPluginAPI_ContainerStopping = ::std::option::Option<
+    unsafe extern "C" fn(Session: *const WSLCSessionInformation, ContainerId: LPCSTR) -> HRESULT,
+>;
+#[doc = " Called when an image is created (either pulled, or imported). Errors are ignored.\n 'InspectImage' is a JSON document that follows the wslc_schema::InspectImage format.\n N.B. This callback is currently only invoked when images are pulled or imported. Images created via load or build are not reported."]
+pub type WSLPluginAPI_ImageCreated = ::std::option::Option<
+    unsafe extern "C" fn(Session: *const WSLCSessionInformation, InspectImage: LPCSTR) -> HRESULT,
+>;
+#[doc = " Called when an image is deleted. 'ImageId' is the deleted image identifier. Errors are ignored."]
+pub type WSLPluginAPI_ImageDeleted = ::std::option::Option<
+    unsafe extern "C" fn(Session: *const WSLCSessionInformation, ImageId: LPCSTR) -> HRESULT,
+>;
+#[doc = " Mount a Windows folder into the WSLC session VM at the given 'Mountpoint' path. If the 'Mountpoint' doesn't exist, it will be created."]
+pub type WSLCPluginAPI_MountFolder = ::std::option::Option<
+    unsafe extern "C" fn(
+        Session: WSLCSessionId,
+        WindowsPath: LPCWSTR,
+        Mountpoint: LPCSTR,
+        ReadOnly: BOOL,
+    ) -> HRESULT,
+>;
+#[doc = " Unmount a folder previously mounted via WSLCPluginAPI_MountFolder."]
+pub type WSLCPluginAPI_UnmountFolder = ::std::option::Option<
+    unsafe extern "C" fn(Session: WSLCSessionId, Mountpoint: LPCSTR) -> HRESULT,
+>;
+#[doc = " Create a process in the WSLC session's root namespace.\n 'Arguments' and 'Env' are NULL-terminated arrays. 'Env' may be NULL.\n 'Errno' is optional and receives the errno value if the process creation fails.\n On success, 'Process' receives an opaque handle that must be released with WSLCPluginAPI_ReleaseProcess."]
+pub type WSLCPluginAPI_CreateProcess = ::std::option::Option<
+    unsafe extern "C" fn(
+        Session: WSLCSessionId,
+        Executable: LPCSTR,
+        Arguments: *mut LPCSTR,
+        Env: *mut LPCSTR,
+        Process: *mut WSLCProcessHandle,
+        Errno: *mut ::std::os::raw::c_int,
+    ) -> HRESULT,
+>;
+#[doc = " Get a stdio handle from a WSLC process. The caller takes ownership and must close it with CloseHandle()."]
+pub type WSLCPluginAPI_ProcessGetFd = ::std::option::Option<
+    unsafe extern "C" fn(
+        Process: WSLCProcessHandle,
+        Fd: WSLCProcessFd,
+        Handle: *mut HANDLE,
+    ) -> HRESULT,
+>;
+#[doc = " Get the exit event for a WSLC process. Signaled when the process exits.\n The caller takes ownership and must close it with CloseHandle()."]
+pub type WSLCPluginAPI_ProcessGetExitEvent = ::std::option::Option<
+    unsafe extern "C" fn(Process: WSLCProcessHandle, ExitEvent: *mut HANDLE) -> HRESULT,
+>;
+#[doc = " Get the exit code of a WSLC process. The process must have exited."]
+pub type WSLCPluginAPI_ProcessGetExitCode = ::std::option::Option<
+    unsafe extern "C" fn(
+        Process: WSLCProcessHandle,
+        ExitCode: *mut ::std::os::raw::c_int,
+    ) -> HRESULT,
+>;
+#[doc = " Release a WSLC process handle. All outstanding handles obtained via\n WSLCPluginAPI_ProcessGetFd/GetExitEvent must be closed before calling this."]
+pub type WSLCPluginAPI_ReleaseProcess =
+    ::std::option::Option<unsafe extern "C" fn(Process: WSLCProcessHandle)>;
 #[doc = " Execute a program in a user distribution\n On success, 'Socket' is connected to stdin & stdout (stderr goes to dmesg) // 'Arguments' is expected to be NULL terminated"]
 pub type WSLPluginAPI_ExecuteBinaryInDistribution = ::std::option::Option<
     unsafe extern "C" fn(
@@ -188,7 +292,7 @@ pub type WSLPluginAPI_OnDistributionStopping = ::std::option::Option<
         Distribution: *const WSLDistributionInformation,
     ) -> HRESULT,
 >;
-#[doc = " Called when a distribution is registered or unregisteed.\n Returning failure will NOT cause the operation to fail."]
+#[doc = " Called when a distribution is registered or unregistered.\n Returning failure will NOT cause the operation to fail."]
 pub type WSLPluginAPI_OnDistributionRegistered = ::std::option::Option<
     unsafe extern "C" fn(
         Session: *const WSLSessionInformation,
@@ -207,10 +311,17 @@ pub struct WSLPluginHooksV1 {
     pub OnDistributionRegistered: WSLPluginAPI_OnDistributionRegistered,
     #[doc = " Introduced in 2.1.2"]
     pub OnDistributionUnregistered: WSLPluginAPI_OnDistributionRegistered,
+    #[doc = " WSLC hooks. Plugins compiled against older headers leave these zero-initialized."]
+    pub OnSessionCreated: WSLPluginAPI_OnSessionCreated,
+    pub OnSessionStopping: WSLPluginAPI_OnSessionStopping,
+    pub ContainerStarted: WSLPluginAPI_ContainerStarted,
+    pub ContainerStopping: WSLPluginAPI_ContainerStopping,
+    pub ImageCreated: WSLPluginAPI_ImageCreated,
+    pub ImageDeleted: WSLPluginAPI_ImageDeleted,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of WSLPluginHooksV1"][::std::mem::size_of::<WSLPluginHooksV1>() - 48usize];
+    ["Size of WSLPluginHooksV1"][::std::mem::size_of::<WSLPluginHooksV1>() - 96usize];
     ["Alignment of WSLPluginHooksV1"][::std::mem::align_of::<WSLPluginHooksV1>() - 8usize];
     ["Offset of field: WSLPluginHooksV1::OnVMStarted"]
         [::std::mem::offset_of!(WSLPluginHooksV1, OnVMStarted) - 0usize];
@@ -224,6 +335,18 @@ const _: () = {
         [::std::mem::offset_of!(WSLPluginHooksV1, OnDistributionRegistered) - 32usize];
     ["Offset of field: WSLPluginHooksV1::OnDistributionUnregistered"]
         [::std::mem::offset_of!(WSLPluginHooksV1, OnDistributionUnregistered) - 40usize];
+    ["Offset of field: WSLPluginHooksV1::OnSessionCreated"]
+        [::std::mem::offset_of!(WSLPluginHooksV1, OnSessionCreated) - 48usize];
+    ["Offset of field: WSLPluginHooksV1::OnSessionStopping"]
+        [::std::mem::offset_of!(WSLPluginHooksV1, OnSessionStopping) - 56usize];
+    ["Offset of field: WSLPluginHooksV1::ContainerStarted"]
+        [::std::mem::offset_of!(WSLPluginHooksV1, ContainerStarted) - 64usize];
+    ["Offset of field: WSLPluginHooksV1::ContainerStopping"]
+        [::std::mem::offset_of!(WSLPluginHooksV1, ContainerStopping) - 72usize];
+    ["Offset of field: WSLPluginHooksV1::ImageCreated"]
+        [::std::mem::offset_of!(WSLPluginHooksV1, ImageCreated) - 80usize];
+    ["Offset of field: WSLPluginHooksV1::ImageDeleted"]
+        [::std::mem::offset_of!(WSLPluginHooksV1, ImageDeleted) - 88usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -234,10 +357,24 @@ pub struct WSLPluginAPIV1 {
     pub PluginError: WSLPluginAPI_PluginError,
     #[doc = " Introduced in 2.1.2"]
     pub ExecuteBinaryInDistribution: WSLPluginAPI_ExecuteBinaryInDistribution,
+    #[doc = " Introduced in 2.9.0"]
+    pub WSLCMountFolder: WSLCPluginAPI_MountFolder,
+    #[doc = " Introduced in 2.9.0"]
+    pub WSLCUnmountFolder: WSLCPluginAPI_UnmountFolder,
+    #[doc = " Introduced in 2.9.0"]
+    pub WSLCCreateProcess: WSLCPluginAPI_CreateProcess,
+    #[doc = " Introduced in 2.9.0"]
+    pub WSLCProcessGetFd: WSLCPluginAPI_ProcessGetFd,
+    #[doc = " Introduced in 2.9.0"]
+    pub WSLCProcessGetExitEvent: WSLCPluginAPI_ProcessGetExitEvent,
+    #[doc = " Introduced in 2.9.0"]
+    pub WSLCProcessGetExitCode: WSLCPluginAPI_ProcessGetExitCode,
+    #[doc = " Introduced in 2.9.0"]
+    pub WSLCReleaseProcess: WSLCPluginAPI_ReleaseProcess,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of WSLPluginAPIV1"][::std::mem::size_of::<WSLPluginAPIV1>() - 48usize];
+    ["Size of WSLPluginAPIV1"][::std::mem::size_of::<WSLPluginAPIV1>() - 104usize];
     ["Alignment of WSLPluginAPIV1"][::std::mem::align_of::<WSLPluginAPIV1>() - 8usize];
     ["Offset of field: WSLPluginAPIV1::Version"]
         [::std::mem::offset_of!(WSLPluginAPIV1, Version) - 0usize];
@@ -249,6 +386,20 @@ const _: () = {
         [::std::mem::offset_of!(WSLPluginAPIV1, PluginError) - 32usize];
     ["Offset of field: WSLPluginAPIV1::ExecuteBinaryInDistribution"]
         [::std::mem::offset_of!(WSLPluginAPIV1, ExecuteBinaryInDistribution) - 40usize];
+    ["Offset of field: WSLPluginAPIV1::WSLCMountFolder"]
+        [::std::mem::offset_of!(WSLPluginAPIV1, WSLCMountFolder) - 48usize];
+    ["Offset of field: WSLPluginAPIV1::WSLCUnmountFolder"]
+        [::std::mem::offset_of!(WSLPluginAPIV1, WSLCUnmountFolder) - 56usize];
+    ["Offset of field: WSLPluginAPIV1::WSLCCreateProcess"]
+        [::std::mem::offset_of!(WSLPluginAPIV1, WSLCCreateProcess) - 64usize];
+    ["Offset of field: WSLPluginAPIV1::WSLCProcessGetFd"]
+        [::std::mem::offset_of!(WSLPluginAPIV1, WSLCProcessGetFd) - 72usize];
+    ["Offset of field: WSLPluginAPIV1::WSLCProcessGetExitEvent"]
+        [::std::mem::offset_of!(WSLPluginAPIV1, WSLCProcessGetExitEvent) - 80usize];
+    ["Offset of field: WSLPluginAPIV1::WSLCProcessGetExitCode"]
+        [::std::mem::offset_of!(WSLPluginAPIV1, WSLCProcessGetExitCode) - 88usize];
+    ["Offset of field: WSLPluginAPIV1::WSLCReleaseProcess"]
+        [::std::mem::offset_of!(WSLPluginAPIV1, WSLCReleaseProcess) - 96usize];
 };
 pub type WSLPluginAPI_EntryPointV1 = ::std::option::Option<
     unsafe extern "C" fn(Api: *const WSLPluginAPIV1, Hooks: *mut WSLPluginHooksV1) -> HRESULT,

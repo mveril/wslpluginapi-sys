@@ -75,6 +75,13 @@ mod tests {
             ExecuteBinary: None,
             PluginError: None,
             ExecuteBinaryInDistribution: None,
+            WSLCMountFolder: None,
+            WSLCUnmountFolder: None,
+            WSLCCreateProcess: None,
+            WSLCProcessGetFd: None,
+            WSLCProcessGetExitEvent: None,
+            WSLCProcessGetExitCode: None,
+            WSLCReleaseProcess: None,
         };
 
         assert_eq!(unsafe { require_version(1, 0, 0, &api) }, S_OK);
@@ -92,6 +99,13 @@ mod tests {
             ExecuteBinary: None,
             PluginError: None,
             ExecuteBinaryInDistribution: None,
+            WSLCMountFolder: None,
+            WSLCUnmountFolder: None,
+            WSLCCreateProcess: None,
+            WSLCProcessGetFd: None,
+            WSLCProcessGetExitEvent: None,
+            WSLCProcessGetExitCode: None,
+            WSLCReleaseProcess: None,
         };
 
         assert_eq!(
@@ -112,6 +126,13 @@ mod tests {
             ExecuteBinary: None,
             PluginError: None,
             ExecuteBinaryInDistribution: None,
+            WSLCMountFolder: None,
+            WSLCUnmountFolder: None,
+            WSLCCreateProcess: None,
+            WSLCProcessGetFd: None,
+            WSLCProcessGetExitEvent: None,
+            WSLCProcessGetExitCode: None,
+            WSLCReleaseProcess: None,
         };
 
         assert_eq!(
@@ -132,6 +153,13 @@ mod tests {
             ExecuteBinary: None,
             PluginError: None,
             ExecuteBinaryInDistribution: None,
+            WSLCMountFolder: None,
+            WSLCUnmountFolder: None,
+            WSLCCreateProcess: None,
+            WSLCProcessGetFd: None,
+            WSLCProcessGetExitEvent: None,
+            WSLCProcessGetExitCode: None,
+            WSLCReleaseProcess: None,
         };
 
         assert_eq!(
@@ -152,6 +180,13 @@ mod tests {
             ExecuteBinary: None,
             PluginError: None,
             ExecuteBinaryInDistribution: None,
+            WSLCMountFolder: None,
+            WSLCUnmountFolder: None,
+            WSLCCreateProcess: None,
+            WSLCProcessGetFd: None,
+            WSLCProcessGetExitEvent: None,
+            WSLCProcessGetExitCode: None,
+            WSLCReleaseProcess: None,
         };
 
         assert_eq!(unsafe { require_version(1, 0, 1, &api) }, S_OK);
